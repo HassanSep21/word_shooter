@@ -1,0 +1,6 @@
+*.0
+*.exe
+*.log
+*.swp
+build/
+.vscode/
