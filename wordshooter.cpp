@@ -51,6 +51,7 @@ string tnames[] = { "a.bmp", "b.bmp", "c.bmp", "d.bmp", "e.bmp", "f.bmp", "g.bmp
 GLuint mtid[nalphabets];
 int awidth = 60, aheight = 60; // 60x60 pixels cookies...
 
+int counter = 120;
 
 //USED THIS CODE FOR WRITING THE IMAGES TO .bin FILE
 void RegisterTextures_Write()
@@ -190,17 +191,22 @@ void DrawAlphabet(const alphabets &cname, int sx, int sy, int cwidth = 60,
 	glDisable(GL_TEXTURE_2D);
 	glPopMatrix();
 
-	//glutSwapBuffers();
+	// glutSwapBuffers();
 }
 int GetAlphabet() {
 	return GetRandInRange(1, 26);
 }
 
-void Pixels2Cell(int px, int py, int & cx, int &cy) {
+void Pixels2Cell(int px, int py, int & cx, int &cy) 
+{
+	cx = px / 30;
+	cy = py / 30;
 }
 void Cell2Pixels(int cx, int cy, int & px, int &py)
 // converts the cell coordinates to pixel coordinates...
 {
+	px = cx * 30;
+	py = cy * 30;
 }
 void DrawShooter(int sx, int sy, int cwidth = 60, int cheight = 60)
 
@@ -235,6 +241,12 @@ void DrawShooter(int sx, int sy, int cwidth = 60, int cheight = 60)
 /*
 * Main Canvas drawing function.
 * */
+int letters[2][15];
+int shooterBall;
+
+int ballPosX = 460;
+int ballPosY = 10;
+
 void DisplayFunction() {
 	// set the background color using function glClearColor.
 	// to change the background play with the red, green and blue values below.
@@ -245,45 +257,26 @@ void DisplayFunction() {
 	glClear(GL_COLOR_BUFFER_BIT); //Update the colors
 
 	//write your drawing commands here or call your drawing functions...
-	DrawAlphabet((alphabets)GetAlphabet(), 10, 490, awidth, aheight);
-	DrawAlphabet((alphabets)GetAlphabet(), 70, 490, awidth, aheight);
-	DrawAlphabet((alphabets)GetAlphabet(), 130, 490, awidth, aheight);
-	DrawAlphabet((alphabets)GetAlphabet(), 190, 490, awidth, aheight);
-	DrawAlphabet((alphabets)GetAlphabet(), 250, 490, awidth, aheight);
-	DrawAlphabet((alphabets)GetAlphabet(), 310, 490, awidth, aheight);
-	DrawAlphabet((alphabets)GetAlphabet(), 370, 490, awidth, aheight);
-	DrawAlphabet((alphabets)GetAlphabet(), 430, 490, awidth, aheight);
-	DrawAlphabet((alphabets)GetAlphabet(), 490, 490, awidth, aheight);
-	DrawAlphabet((alphabets)GetAlphabet(), 550, 490, awidth, aheight);
-	DrawAlphabet((alphabets)GetAlphabet(), 610, 490, awidth, aheight);
-	DrawAlphabet((alphabets)GetAlphabet(), 670, 490, awidth, aheight);
-	DrawAlphabet((alphabets)GetAlphabet(), 730, 490, awidth, aheight);
-	DrawAlphabet((alphabets)GetAlphabet(), 790, 490, awidth, aheight);
-	DrawAlphabet((alphabets)GetAlphabet(), 850, 490, awidth, aheight);
+	int posX;
+	int posY = 490;
 
-	DrawAlphabet((alphabets)0, 10, 550, awidth, aheight);
-	DrawAlphabet((alphabets)1, 70, 550, awidth, aheight);
-	DrawAlphabet((alphabets)2, 130, 550, awidth, aheight);
-	DrawAlphabet((alphabets)3, 190, 550, awidth, aheight);
-	DrawAlphabet((alphabets)4, 250, 550, awidth, aheight);
-	DrawAlphabet((alphabets)5, 310, 550, awidth, aheight);
-	DrawAlphabet((alphabets)6, 370, 550, awidth, aheight);
-	DrawAlphabet((alphabets)7, 430, 550, awidth, aheight);
-	DrawAlphabet((alphabets)8, 490, 550, awidth, aheight);
-	DrawAlphabet((alphabets)9, 550, 550, awidth, aheight);
-	DrawAlphabet((alphabets)10, 610, 550, awidth, aheight);
-	DrawAlphabet((alphabets)11, 670, 550, awidth, aheight);
-	DrawAlphabet((alphabets)12, 730, 550, awidth, aheight);
-	DrawAlphabet((alphabets)13, 790, 550, awidth, aheight);
-	DrawAlphabet((alphabets)14, 850, 550, awidth, aheight);
-
+	for (int i = 0; i < 2; i++)
+	{
+		posX = 10;
+		for (int j = 0; j < 15; j++)
+		{
+			DrawAlphabet((alphabets)letters[i][j], posX, posY, awidth, aheight);
+			posX += 60;
+		}
+		posY += 60;
+	}
+	
 	// Shooter's ball
-	DrawAlphabet((alphabets)GetAlphabet(), 460, 10, awidth, aheight);
+	DrawAlphabet((alphabets)shooterBall, ballPosX, ballPosY, awidth, aheight);
 
 	DrawString(40, height - 20, width, height + 5, "Score: " + Num2Str(score), colors[BLUE_VIOLET]);
 	DrawString(width / 2 - 130, height - 20, width, height + 5, "Hassan Ahmed [24i-2521]", colors[BLUE_VIOLET]);
-	DrawString(width - 200, height - 25, width, height,
-		"Time Left:" + Num2Str(120) + " secs", colors[RED]);
+	DrawString(width - 200, height - 25, width, height, "Time Left:" + Num2Str(counter) + " secs", colors[RED]);
 
 	// #----------------- Write your code till here ----------------------------#
 	//DO NOT MODIFY THESE LINES
@@ -341,7 +334,8 @@ void NonPrintableKeys(int key, int x, int y) {
 
 void MouseMoved(int x, int y) {
 	//If mouse pressed then check than swap the balls and if after swaping balls dont brust then reswap the balls
-
+	cout << "x: " << x << endl
+		 << "y: " << y << endl;
 }
 
 /*This function is called (automatically) whenever your mouse button is clicked witin inside the game window
@@ -359,8 +353,8 @@ void MouseClicked(int button, int state, int x, int y) {
 	{
 		if (state == GLUT_UP)
 		{
-
-
+			ballPosX = x;
+			ballPosY = height - y;
 		}
 	}
 	else if (button == GLUT_RIGHT_BUTTON) // dealing with right button
@@ -387,7 +381,17 @@ void PrintableKeys(unsigned char key, int x, int y) {
 * speed of different moving objects by varying the constant FPS.
 *
 * */
+int mil = 10;
 void Timer(int m) {
+	if (mil <= 0)
+	{
+		counter--;
+		mil = 10;
+	}
+	else
+	{
+		mil--;
+	}
 
 	glutPostRedisplay();
 	glutTimerFunc(1000.0/FPS, Timer, 0);
@@ -407,8 +411,15 @@ int main(int argc, char*argv[]) {
 		cout<< " word "<< i << " =" << dictionary[i] <<endl;
 
 	//Write your code here for filling the canvas with different Alphabets. You can use the Getalphabet function for getting the random alphabets
+	for (int i = 0; i < nfrows; i++)
+	{
+		for (int j = 0; j < 15; j++)
+		{
+			letters[i][j] = GetAlphabet();
+		}
+	}
 
-
+	shooterBall = GetAlphabet();
 
 	glutInit(&argc, argv); // initialize the graphics library...
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA); // we will be using color display mode
