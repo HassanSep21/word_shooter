@@ -199,14 +199,14 @@ int GetAlphabet() {
 
 void Pixels2Cell(int px, int py, int & cx, int &cy) 
 {
-	cx = px / 30;
-	cy = py / 30;
+	cx = px / 60;
+	cy = py / 60;
 }
 void Cell2Pixels(int cx, int cy, int & px, int &py)
 // converts the cell coordinates to pixel coordinates...
 {
-	px = cx * 30;
-	py = cy * 30;
+	px = cx * 60 + 10;
+	py = cy * 60 + 10;
 }
 void DrawShooter(int sx, int sy, int cwidth = 60, int cheight = 60)
 
@@ -247,6 +247,11 @@ int shooterBall;
 int ballPosX = 460;
 int ballPosY = 10;
 
+int targetX = 460;
+int targetY = 10;
+
+bool moveBall = false;
+
 void DisplayFunction() {
 	// set the background color using function glClearColor.
 	// to change the background play with the red, green and blue values below.
@@ -272,6 +277,38 @@ void DisplayFunction() {
 	}
 	
 	// Shooter's ball
+	
+	if (moveBall && ballPosY < 420)
+	{
+		float r = sqrt(pow(targetX - ballPosX, 2) + pow(targetY - ballPosY, 2));
+		float tmp;
+
+		if (ballPosX >= width - 1)
+		{
+			tmp = (targetX - ballPosX) / r;
+			ballPosX -= 10 * tmp;
+		}
+		else
+		{
+			tmp = (targetX - ballPosX) / r;
+			ballPosX += 10 * tmp;
+		}
+
+		tmp = (ballPosY - targetY) / r;
+		ballPosY -= 10 * tmp;
+
+		cout << "x: " << ballPosX << endl
+			 << "y: " << ballPosY << endl;
+
+		if (ballPosY >= 420)
+		{
+			moveBall = false;
+			Pixels2Cell(ballPosX, ballPosY, ballPosX, ballPosY);
+			Cell2Pixels(ballPosX, ballPosY, ballPosX, ballPosY);
+		}
+	}
+	
+
 	DrawAlphabet((alphabets)shooterBall, ballPosX, ballPosY, awidth, aheight);
 
 	DrawString(40, height - 20, width, height + 5, "Score: " + Num2Str(score), colors[BLUE_VIOLET]);
@@ -353,13 +390,18 @@ void MouseClicked(int button, int state, int x, int y) {
 	{
 		if (state == GLUT_UP)
 		{
-			ballPosX = x;
-			ballPosY = height - y;
+			targetX = x;
+			targetY = height - y;
+			moveBall = true;
 		}
 	}
 	else if (button == GLUT_RIGHT_BUTTON) // dealing with right button
 	{
-
+		if (state == GLUT_UP)
+		{
+			ballPosX = 460;
+			ballPosY = 10;
+		}
 	}
 	glutPostRedisplay();
 }
@@ -425,7 +467,7 @@ int main(int argc, char*argv[]) {
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA); // we will be using color display mode
 	glutInitWindowPosition(50, 50); // set the initial position of our window
 	glutInitWindowSize(width, height); // set the size of our window
-	glutCreateWindow("ITCs Word Shooter"); // set the title of our game window
+	glutCreateWindow("PF Word Shooter"); // set the title of our game window
 	//SetCanvasSize(width, height); // set the number of pixels...
 
 	// Register your functions to the library,
