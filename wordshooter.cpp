@@ -51,7 +51,17 @@ string tnames[] = { "a.bmp", "b.bmp", "c.bmp", "d.bmp", "e.bmp", "f.bmp", "g.bmp
 GLuint mtid[nalphabets];
 int awidth = 60, aheight = 60; // 60x60 pixels cookies...
 
-int counter = 120;
+
+// My variables
+int sec = 120;
+
+int letters[10][15];
+int shooterBall;
+
+int ballPosX = 460;
+int ballPosY = 10;
+
+bool moveBall = false;
 
 //USED THIS CODE FOR WRITING THE IMAGES TO .bin FILE
 void RegisterTextures_Write()
@@ -241,16 +251,8 @@ void DrawShooter(int sx, int sy, int cwidth = 60, int cheight = 60)
 /*
 * Main Canvas drawing function.
 * */
-int letters[2][15];
-int shooterBall;
-
-int ballPosX = 460;
-int ballPosY = 10;
-
-int targetX = 460;
-int targetY = 10;
-
-bool moveBall = false;
+float dx;
+float dy;
 
 void DisplayFunction() {
 	// set the background color using function glClearColor.
@@ -262,58 +264,67 @@ void DisplayFunction() {
 	glClear(GL_COLOR_BUFFER_BIT); //Update the colors
 
 	//write your drawing commands here or call your drawing functions...
-	int posX;
-	int posY = 490;
 
-	for (int i = 0; i < 2; i++)
+	if (sec > 0)
 	{
-		posX = 10;
-		for (int j = 0; j < 15; j++)
+		int posX;
+		int posY = 550;
+
+		for (int i = 0; i < 10; i++)
 		{
-			DrawAlphabet((alphabets)letters[i][j], posX, posY, awidth, aheight);
-			posX += 60;
+			posX = 10;
+			for (int j = 0; j < 15; j++)
+			{
+				DrawAlphabet((alphabets)letters[i][j], posX, posY, awidth, aheight);
+				posX += 60;
+			}
+			posY -= 60;
 		}
-		posY += 60;
-	}
-	
-	// Shooter's ball
-	
-	if (moveBall && ballPosY < 420)
-	{
-		float r = sqrt(pow(targetX - ballPosX, 2) + pow(targetY - ballPosY, 2));
-		float tmp;
-
-		if (ballPosX >= width - 1)
+			
+		if (ballPosY < 420)
 		{
-			tmp = (targetX - ballPosX) / r;
-			ballPosX -= 10 * tmp;
+			// Shooter's ball
+			if ( ballPosY < 420)
+			{
+				ballPosX += dx;
+				ballPosY += dy;
+
+				if (ballPosX <= 10 || ballPosX >= width - 61)
+				{
+					dx = -dx;
+				}
+
+				if (ballPosY >= 420)
+				{
+					// moveBall = false;
+					Pixels2Cell(ballPosX, ballPosY, ballPosX, ballPosY);
+					Cell2Pixels(ballPosX, ballPosY, ballPosX, ballPosY);
+				}
+			}
 		}
 		else
 		{
-			tmp = (targetX - ballPosX) / r;
-			ballPosX += 10 * tmp;
+			dx = 0;
+			dy = 0;
+			ballPosX = 460;
+			ballPosY = 10;
+
+			shooterBall = GetAlphabet();
 		}
 
-		tmp = (ballPosY - targetY) / r;
-		ballPosY -= 10 * tmp;
+		DrawAlphabet((alphabets)shooterBall, ballPosX, ballPosY, awidth, aheight);
 
-		cout << "x: " << ballPosX << endl
-			 << "y: " << ballPosY << endl;
-
-		if (ballPosY >= 420)
-		{
-			moveBall = false;
-			Pixels2Cell(ballPosX, ballPosY, ballPosX, ballPosY);
-			Cell2Pixels(ballPosX, ballPosY, ballPosX, ballPosY);
-		}
+		DrawString(40, height - 20, width, height + 5, "Score: " + Num2Str(score), colors[BLUE_VIOLET]);
+		DrawString(width / 2 - 130, height - 20, width, height + 5, "Hassan Ahmed [24i-2521]", colors[BLUE_VIOLET]);
+		DrawString(width - 200, height - 25, width, height, "Time Left:" + Num2Str(sec) + " sec", colors[RED]);
 	}
-	
-
-	DrawAlphabet((alphabets)shooterBall, ballPosX, ballPosY, awidth, aheight);
-
-	DrawString(40, height - 20, width, height + 5, "Score: " + Num2Str(score), colors[BLUE_VIOLET]);
-	DrawString(width / 2 - 130, height - 20, width, height + 5, "Hassan Ahmed [24i-2521]", colors[BLUE_VIOLET]);
-	DrawString(width - 200, height - 25, width, height, "Time Left:" + Num2Str(counter) + " secs", colors[RED]);
+	else
+	{
+		DrawString(width / 2 - 130, height - 20, width, height + 5, "Hassan Ahmed [24i-2521]", colors[BLUE_VIOLET]);
+		DrawString(350, height / 2 + 30, width, height + 5, "!!!GAME OVER!!!", colors[RED]);
+		DrawString(360, height / 2, width, height + 5, "FINAL SCORE: " + Num2Str(score), colors[GREEN]);
+		DrawString(340, height / 2 - 100, width, height + 5, "PRESS [ESC] TO QUIT", colors[GRAY]);
+	}
 
 	// #----------------- Write your code till here ----------------------------#
 	//DO NOT MODIFY THESE LINES
@@ -371,8 +382,6 @@ void NonPrintableKeys(int key, int x, int y) {
 
 void MouseMoved(int x, int y) {
 	//If mouse pressed then check than swap the balls and if after swaping balls dont brust then reswap the balls
-	cout << "x: " << x << endl
-		 << "y: " << y << endl;
 }
 
 /*This function is called (automatically) whenever your mouse button is clicked witin inside the game window
@@ -386,21 +395,19 @@ void MouseMoved(int x, int y) {
 
 void MouseClicked(int button, int state, int x, int y) {
 
-	if (button == GLUT_LEFT_BUTTON) // dealing only with left button
+	if (button == GLUT_LEFT_BUTTON && state == GLUT_UP) // dealing only with left button
 	{
-		if (state == GLUT_UP)
-		{
-			targetX = x;
-			targetY = height - y;
-			moveBall = true;
-		}
+		x -= 30;
+		y -= 30;
+		dx = (x - 460) / 50.0;
+		dy = (550 - y) / 50.0;
+		// moveBall = true;
 	}
 	else if (button == GLUT_RIGHT_BUTTON) // dealing with right button
 	{
 		if (state == GLUT_UP)
 		{
-			ballPosX = 460;
-			ballPosY = 10;
+
 		}
 	}
 	glutPostRedisplay();
@@ -427,13 +434,18 @@ int mil = 10;
 void Timer(int m) {
 	if (mil <= 0)
 	{
-		counter--;
+		sec--;
 		mil = 10;
 	}
 	else
 	{
 		mil--;
 	}
+
+	// if (sec > 0)
+	// {
+	// 	sec -= 1 / 60.0;
+	// }
 
 	glutPostRedisplay();
 	glutTimerFunc(1000.0/FPS, Timer, 0);
@@ -453,16 +465,23 @@ int main(int argc, char*argv[]) {
 		cout<< " word "<< i << " =" << dictionary[i] <<endl;
 
 	//Write your code here for filling the canvas with different Alphabets. You can use the Getalphabet function for getting the random alphabets
-	for (int i = 0; i < nfrows; i++)
+	for (int i = 0; i < 10; i++)
 	{
 		for (int j = 0; j < 15; j++)
 		{
-			letters[i][j] = GetAlphabet();
+			if (i < nfrows)
+			{
+				letters[i][j] = GetAlphabet();
+			}
+			else
+			{
+				letters[i][j] = -1;
+			}
 		}
 	}
 
-	shooterBall = GetAlphabet();
 
+	shooterBall = GetAlphabet();
 	glutInit(&argc, argv); // initialize the graphics library...
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA); // we will be using color display mode
 	glutInitWindowPosition(50, 50); // set the initial position of our window
