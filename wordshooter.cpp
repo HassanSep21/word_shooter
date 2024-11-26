@@ -63,6 +63,9 @@ int ballPosY = 10;
 
 bool moveBall = false;
 
+float dx;
+float dy;
+
 //USED THIS CODE FOR WRITING THE IMAGES TO .bin FILE
 void RegisterTextures_Write()
 //Function is used to load the textures from the
@@ -167,8 +170,7 @@ void RegisterTextures()
 	}
 	ifile.close();
 }
-void DrawAlphabet(const alphabets &cname, int sx, int sy, int cwidth = 60,
-	int cheight = 60)
+void DrawAlphabet(const alphabets &cname, int sx, int sy, int cwidth = 60, int cheight = 60)
 	/*Draws a specfic cookie at given position coordinate
 	* sx = position of x-axis from left-bottom
 	* sy = position of y-axis from left-bottom
@@ -248,12 +250,10 @@ void DrawShooter(int sx, int sy, int cwidth = 60, int cheight = 60)
 
 	//glutSwapBuffers();
 }
+
 /*
 * Main Canvas drawing function.
 * */
-float dx;
-float dy;
-
 void DisplayFunction() {
 	// set the background color using function glClearColor.
 	// to change the background play with the red, green and blue values below.
@@ -264,7 +264,6 @@ void DisplayFunction() {
 	glClear(GL_COLOR_BUFFER_BIT); //Update the colors
 
 	//write your drawing commands here or call your drawing functions...
-
 	if (sec > 0)
 	{
 		int posX;
@@ -296,7 +295,6 @@ void DisplayFunction() {
 
 				if (ballPosY >= 420)
 				{
-					// moveBall = false;
 					Pixels2Cell(ballPosX, ballPosY, ballPosX, ballPosY);
 					Cell2Pixels(ballPosX, ballPosY, ballPosX, ballPosY);
 				}
@@ -401,7 +399,6 @@ void MouseClicked(int button, int state, int x, int y) {
 		y -= 30;
 		dx = (x - 460) / 50.0;
 		dy = (550 - y) / 50.0;
-		// moveBall = true;
 	}
 	else if (button == GLUT_RIGHT_BUTTON) // dealing with right button
 	{
