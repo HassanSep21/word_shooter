@@ -19,7 +19,7 @@ using namespace std;
 #define MAX(A,B) ((A) > (B) ? (A):(B)) // defining single line functions....
 #define MIN(A,B) ((A) < (B) ? (A):(B))
 #define ABS(A) ((A) < (0) ? -(A):(A))
-#define FPS 10
+#define FPS 60
 
 string * dictionary;
 int dictionarysize = 370099;
@@ -52,8 +52,8 @@ GLuint mtid[nalphabets];
 int awidth = 60, aheight = 60; // 60x60 pixels cookies...
 
 
-// My variables
-int sec = 120;
+// MY VARIABLES
+float sec = 120;
 
 int letters[10][15];
 int shooterBall;
@@ -61,10 +61,10 @@ int shooterBall;
 int ballPosX = 460;
 int ballPosY = 10;
 
-bool moveBall = false;
-
 float dx;
 float dy;
+
+bool collision = false;
 
 //USED THIS CODE FOR WRITING THE IMAGES TO .bin FILE
 void RegisterTextures_Write()
@@ -211,12 +211,12 @@ int GetAlphabet() {
 
 void Pixels2Cell(int px, int py, int & cx, int &cy) 
 {
-	cx = px / 60;
+	cx = round((px + 10) / 60);
 	cy = py / 60;
 }
 void Cell2Pixels(int cx, int cy, int & px, int &py)
-// converts the cell coordinates to pixel coordinates...
 {
+	// converts the cell coordinates to pixel coordinates...
 	px = cx * 60 + 10;
 	py = cy * 60 + 10;
 }
@@ -251,6 +251,69 @@ void DrawShooter(int sx, int sy, int cwidth = 60, int cheight = 60)
 	//glutSwapBuffers();
 }
 
+// MY FUNCTIONS
+bool checkCollision()
+{
+	int tmpX;
+	int tmpY;
+
+	Pixels2Cell(ballPosX, ballPosY, tmpX, tmpY);
+
+	bool top = (9 - tmpY - 1 >= 0) && (letters[9 - tmpY - 1][tmpX] != -1);
+	bool bottom = (9 - tmpY + 1 < 10) && (letters[9 - tmpY + 1][tmpX] != -1);
+	bool left = (tmpX - 1 >= 0) && (letters[9 - tmpY][tmpX - 1] != -1);
+	bool right = (tmpX + 1 < 15) && (letters[9 - tmpY][tmpX + 1] != -1);
+
+	return top || bottom || left || right;
+}
+
+void displayRows()
+{
+	int posX;
+	int posY = 550;
+
+	for (int i = 0; i < 10; i++)
+	{
+		posX = 10;
+		for (int j = 0; j < 15; j++)
+		{
+			DrawAlphabet((alphabets)letters[i][j], posX, posY, awidth, aheight);
+			posX += 60;
+		}
+		posY -= 60;
+	}
+}
+
+void updateBall()
+{
+	ballPosX += dx;
+	ballPosY += dy;
+
+	if (ballPosX <= 10 || ballPosX >= width - 61)
+	{
+		dx = -dx;
+	}
+
+	if (checkCollision())
+	{
+		Pixels2Cell(ballPosX, ballPosY, ballPosX, ballPosY);
+
+		cout << boolalpha << checkCollision() << endl;
+
+		Cell2Pixels(ballPosX, ballPosY, ballPosX, ballPosY);
+	}
+}
+
+void resetball()
+{
+	dx = 0;
+	dy = 0;
+	ballPosX = 460;
+	ballPosY = 10;
+
+	shooterBall = GetAlphabet();
+}
+
 /*
 * Main Canvas drawing function.
 * */
@@ -266,48 +329,20 @@ void DisplayFunction() {
 	//write your drawing commands here or call your drawing functions...
 	if (sec > 0)
 	{
-		int posX;
-		int posY = 550;
-
-		for (int i = 0; i < 10; i++)
-		{
-			posX = 10;
-			for (int j = 0; j < 15; j++)
-			{
-				DrawAlphabet((alphabets)letters[i][j], posX, posY, awidth, aheight);
-				posX += 60;
-			}
-			posY -= 60;
-		}
+		/*Display Rows*/
+		displayRows();
 			
-		if (ballPosY < 420)
+		/*Move Ball*/
+		if (!checkCollision())
 		{
-			// Shooter's ball
-			if ( ballPosY < 420)
-			{
-				ballPosX += dx;
-				ballPosY += dy;
-
-				if (ballPosX <= 10 || ballPosX >= width - 61)
-				{
-					dx = -dx;
-				}
-
-				if (ballPosY >= 420)
-				{
-					Pixels2Cell(ballPosX, ballPosY, ballPosX, ballPosY);
-					Cell2Pixels(ballPosX, ballPosY, ballPosX, ballPosY);
-				}
-			}
+			updateBall();
 		}
+
+		/*When the ball reaches the rows*/
 		else
 		{
-			dx = 0;
-			dy = 0;
-			ballPosX = 460;
-			ballPosY = 10;
-
-			shooterBall = GetAlphabet();
+			/*Generate new ball and reset its position*/
+			resetball();
 		}
 
 		DrawAlphabet((alphabets)shooterBall, ballPosX, ballPosY, awidth, aheight);
@@ -380,6 +415,7 @@ void NonPrintableKeys(int key, int x, int y) {
 
 void MouseMoved(int x, int y) {
 	//If mouse pressed then check than swap the balls and if after swaping balls dont brust then reswap the balls
+	cout << "x: " << x << " y: " << y << endl;
 }
 
 /*This function is called (automatically) whenever your mouse button is clicked witin inside the game window
@@ -395,10 +431,20 @@ void MouseClicked(int button, int state, int x, int y) {
 
 	if (button == GLUT_LEFT_BUTTON && state == GLUT_UP) // dealing only with left button
 	{
-		x -= 30;
-		y -= 30;
-		dx = (x - 460) / 50.0;
-		dy = (550 - y) / 50.0;
+		// Tweaking x alignmnet
+		if (x <= 445 || x >= 600)
+		{
+			x -= 30;
+		}
+
+		// Tweaking y alignmnet
+		y -= 70;
+
+		if (dx == 0 && dy == 0)
+		{
+			dx = (x - 460) / 50.0;
+			dy = (550 - y) / 50.0;
+		}
 	}
 	else if (button == GLUT_RIGHT_BUTTON) // dealing with right button
 	{
@@ -427,22 +473,12 @@ void PrintableKeys(unsigned char key, int x, int y) {
 * speed of different moving objects by varying the constant FPS.
 *
 * */
-int mil = 10;
-void Timer(int m) {
-	if (mil <= 0)
+void Timer(int m) 
+{
+	if (sec > 0)
 	{
-		sec--;
-		mil = 10;
+		sec -= 1 / 60.0;
 	}
-	else
-	{
-		mil--;
-	}
-
-	// if (sec > 0)
-	// {
-	// 	sec -= 1 / 60.0;
-	// }
 
 	glutPostRedisplay();
 	glutTimerFunc(1000.0/FPS, Timer, 0);
