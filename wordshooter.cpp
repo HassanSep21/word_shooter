@@ -325,13 +325,13 @@ void horzWordCheck(int start, int i)
 	}
 }
 
-void vertWordCheck(int endRow, int j)
+void vertWordCheck(int end, int j)
 {
-	for (int k = 0; k < endRow - 1; k++)
+	for (int k = 0; k < end - 1; k++)
 	{
 		string str = "";
 
-		for (int i = k; i <= endRow; i++)
+		for (int i = k; i <= end; i++)
 		{
 			if (letters[i][j] == -1)
 			{
@@ -351,7 +351,7 @@ void vertWordCheck(int endRow, int j)
 
 					score += str.length();
 
-					for (int i = k; i <= endRow; i++)
+					for (int i = k; i <= end; i++)
 					{
 						letters[i][j] = -1;
 					}
@@ -361,9 +361,112 @@ void vertWordCheck(int endRow, int j)
 	}
 }
 
-void diagWordCheck()
+void rightDiagWordCheck(int startX, int startY)
 {
-	string word = "";
+	int endX = startX;
+	int endY = startY;
+
+	while (endY - 1 >= 0 && endX + 1 <= 14)
+	{
+		endY--;
+		endX++;
+	}
+
+	while(endY < startY && endX > startX)
+	{
+		int i = startY;
+		int j = startX;
+
+		string str = "";	
+
+		while (i >= endY && j <= endX)
+		{
+			if (letters[i][j] == -1)
+			{
+				break;
+			}
+
+			str += char('a' + letters[i--][j++]);
+		}
+
+		if (str.length() > 2)
+		{
+			for (int word = 0; word < dictionarysize; word++)
+			{
+				if (str.length() == dictionary[word].length() && str == dictionary[word])
+				{
+					cout << "found: " << str << endl;
+
+					score += str.length();
+
+					i = startY;
+					j = startX;
+
+					while (i >= endY && j <= endX)
+					{
+						letters[i--][j++] = -1;
+					}
+				}
+			}
+		}
+
+		endY++;
+		endX--;
+	}
+}
+
+void leftDiagWordCheck(int startX, int startY)
+{
+	int endX = startX;
+	int endY = startY;
+
+	while (endY - 1 >= 0 && endX - 1 >= 0)
+	{
+		endY--;
+		endX--;
+	}
+
+	while(endY < startY && endX < startX)
+	{
+		int i = startY;
+		int j = startX;
+
+		string str = "";	
+
+		while (i >= endY && j >= endX)
+		{
+			if (letters[i][j] == -1)
+			{
+				break;
+			}
+
+			str = char('a' + letters[i--][j--]) + str;
+		}
+
+		if (str.length() > 2)
+		{
+			for (int word = 0; word < dictionarysize; word++)
+			{
+				if (str.length() == dictionary[word].length() && str == dictionary[word])
+				{
+					cout << "found: " << str << endl;
+
+					score += str.length();
+
+					i = startY;
+					j = startX;
+
+					while (i >= endY && j >= endX)
+					{
+						letters[i--][j--] = -1;
+					}
+				}
+			}
+		}
+
+		endY++;
+		endX++;
+	}
 }
 
 bool checkCollision()
@@ -468,6 +571,8 @@ void DisplayFunction() {
 
 			vertWordCheck(9 - ballPosY, ballPosX);
 			horzWordCheck(ballPosX, 9 - ballPosY);
+			rightDiagWordCheck(ballPosX, 9 - ballPosY);
+			leftDiagWordCheck(ballPosX, 9 - ballPosY);
 
 			Cell2Pixels(ballPosX, ballPosY, ballPosX, ballPosY);
 
