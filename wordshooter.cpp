@@ -22,7 +22,7 @@ using namespace std;
 #define FPS 60
 
 string * dictionary;
-int dictionarysize = 370099;
+int dictionarysize = 369646;
 #define KEY_ESC 27 // A
 
 // 20,30,30
@@ -57,14 +57,16 @@ float sec = 120;
 
 int letters[10][15];
 int shooterBall;
+int newShooterBall;
 
 int ballPosX = 460;
 int ballPosY = 10;
 
-float dx;
-float dy;
+float speedX;
+float speedY;
 
-bool collision = false;
+// int startingIndex;
+// int endingIndex;
 
 //USED THIS CODE FOR WRITING THE IMAGES TO .bin FILE
 void RegisterTextures_Write()
@@ -171,13 +173,13 @@ void RegisterTextures()
 	ifile.close();
 }
 void DrawAlphabet(const alphabets &cname, int sx, int sy, int cwidth = 60, int cheight = 60)
+{
 	/*Draws a specfic cookie at given position coordinate
 	* sx = position of x-axis from left-bottom
 	* sy = position of y-axis from left-bottom
 	* cwidth= width of displayed cookie in pixels
 	* cheight= height of displayed cookiei pixels.
 	* */
-{
 	float fwidth = (float)cwidth / width * 2, fheight = (float)cheight
 		/ height * 2;
 	float fx = (float)sx / width * 2 - 1, fy = (float)sy / height * 2 - 1;
@@ -252,6 +254,118 @@ void DrawShooter(int sx, int sy, int cwidth = 60, int cheight = 60)
 }
 
 // MY FUNCTIONS
+void horzWordCheck(int start, int i)
+{
+	for (int k = 14; k < start - 1; k--)
+	{
+		string str = "";
+
+		for (int j = start; j <= k; j++)
+		{
+			if(letters[i][j] == -1)
+			{
+				break;
+			}
+
+			str += char ('a' + letters[i][j]);
+		}
+
+		if (str.length() > 2)
+		{
+			for (int word = 0; word < dictionarysize; word++)
+			{
+				if (str.length() == dictionary[word].length() && str == dictionary[word])
+				{
+					cout << "found: " << str << endl;
+
+					score += str.length();
+
+					for (int j = start; j <= k; j++)
+					{
+						letters[i][j] = -1;
+					}
+				}
+			}
+		}
+	}
+
+	int end = start;
+
+	for (int k = 0; k < end - 1; k++)
+	{
+		string str = "";
+
+		for (int j = k; j <= end; j++)
+		{
+			if(letters[i][j] == -1)
+			{
+				break;
+			}
+
+			str += char ('a' + letters[i][j]);
+		}
+
+		if (str.length() > 2)
+		{
+			for (int word = 0; word < dictionarysize; word++)
+			{
+				if (str.length() == dictionary[word].length() && str == dictionary[word])
+				{
+					cout << "found: " << str << endl;
+
+					score += str.length();
+
+					for (int j = k; j <= end; j++)
+					{
+						letters[i][j] = -1;
+					}
+				}
+			}
+		}
+	}
+}
+
+void vertWordCheck(int endRow, int j)
+{
+	for (int k = 0; k < endRow - 1; k++)
+	{
+		string str = "";
+
+		for (int i = k; i <= endRow; i++)
+		{
+			if (letters[i][j] == -1)
+			{
+				break;
+			}
+
+			str += char('a' + letters[i][j]);
+		}
+
+		if (str.length() > 2)
+		{
+			for (int word = 0; word < dictionarysize; word++)
+			{
+				if (str.length() == dictionary[word].length() && str == dictionary[word])
+				{
+					cout << "found: " << str << endl;
+
+					score += str.length();
+
+					for (int i = k; i <= endRow; i++)
+					{
+						letters[i][j] = -1;
+					}
+				}
+			}
+		}
+	}
+}
+
+void diagWordCheck()
+{
+	string word = "";
+}
+
 bool checkCollision()
 {
 	int tmpX;
@@ -260,11 +374,18 @@ bool checkCollision()
 	Pixels2Cell(ballPosX, ballPosY, tmpX, tmpY);
 
 	bool top = (9 - tmpY - 1 >= 0) && (letters[9 - tmpY - 1][tmpX] != -1);
+	bool topLeft = (9 - tmpY - 1 >= 0) && (tmpX - 1 >= 0) && (letters[9 - tmpY - 1][tmpX - 1] != -1);
+	bool topRight = (9 - tmpY - 1 >= 0) && (tmpX + 1 < 15) && (letters[9 - tmpY - 1][tmpX + 1] != -1);
+
 	bool bottom = (9 - tmpY + 1 < 10) && (letters[9 - tmpY + 1][tmpX] != -1);
+	bool bottomLeft = (9 - tmpY + 1 >= 0) && (tmpX - 1 >= 0) && (letters[9 - tmpY - 1][tmpX - 1] != -1);
+	bool bottomRight = (9 - tmpY + 1 >= 0) && (tmpX + 1 < 15) && (letters[9 - tmpY - 1][tmpX + 1] != -1);
+
 	bool left = (tmpX - 1 >= 0) && (letters[9 - tmpY][tmpX - 1] != -1);
 	bool right = (tmpX + 1 < 15) && (letters[9 - tmpY][tmpX + 1] != -1);
 
-	return top || bottom || left || right;
+	return top || topLeft || topRight || bottom || bottomLeft || bottomRight || left || right;
+	// return top || bottom || left || right;
 }
 
 void displayRows()
@@ -286,19 +407,19 @@ void displayRows()
 
 void updateBall()
 {
-	ballPosX += dx;
-	ballPosY += dy;
+	ballPosX += speedX;
+	ballPosY += speedY;
 
 	if (ballPosX <= 10 || ballPosX >= width - 61)
 	{
-		dx = -dx;
+		speedX = -speedX;
 	}
 
 	if (checkCollision())
 	{
 		Pixels2Cell(ballPosX, ballPosY, ballPosX, ballPosY);
 
-		cout << boolalpha << checkCollision() << endl;
+		letters[9 - ballPosY][ballPosX] = shooterBall;
 
 		Cell2Pixels(ballPosX, ballPosY, ballPosX, ballPosY);
 	}
@@ -306,12 +427,14 @@ void updateBall()
 
 void resetball()
 {
-	dx = 0;
-	dy = 0;
+	speedX = 0;
+	speedY = 0;
+
 	ballPosX = 460;
 	ballPosY = 10;
 
-	shooterBall = GetAlphabet();
+	shooterBall = newShooterBall;
+	newShooterBall = GetAlphabet();
 }
 
 /*
@@ -341,18 +464,31 @@ void DisplayFunction() {
 		/*When the ball reaches the rows*/
 		else
 		{
+			Pixels2Cell(ballPosX, ballPosY, ballPosX, ballPosY);
+
+			vertWordCheck(9 - ballPosY, ballPosX);
+			horzWordCheck(ballPosX, 9 - ballPosY);
+
+			Cell2Pixels(ballPosX, ballPosY, ballPosX, ballPosY);
+
 			/*Generate new ball and reset its position*/
 			resetball();
 		}
 
-		DrawAlphabet((alphabets)shooterBall, ballPosX, ballPosY, awidth, aheight);
 
+		/* SHOOTER'S BALL */
+		DrawAlphabet((alphabets)shooterBall, ballPosX, ballPosY, awidth, aheight);
+		DrawAlphabet((alphabets)newShooterBall, 800, 10, awidth, aheight);
+
+		/* TEXTS TO BE DISPLAYED */
 		DrawString(40, height - 20, width, height + 5, "Score: " + Num2Str(score), colors[BLUE_VIOLET]);
 		DrawString(width / 2 - 130, height - 20, width, height + 5, "Hassan Ahmed [24i-2521]", colors[BLUE_VIOLET]);
 		DrawString(width - 200, height - 25, width, height, "Time Left:" + Num2Str(sec) + " sec", colors[RED]);
+		DrawString(790, 90, width, height, "Next ball:", colors[BLACK]);
 	}
 	else
 	{
+		/* GAME OVER SCREEN */
 		DrawString(width / 2 - 130, height - 20, width, height + 5, "Hassan Ahmed [24i-2521]", colors[BLUE_VIOLET]);
 		DrawString(350, height / 2 + 30, width, height + 5, "!!!GAME OVER!!!", colors[RED]);
 		DrawString(360, height / 2, width, height + 5, "FINAL SCORE: " + Num2Str(score), colors[GREEN]);
@@ -415,7 +551,7 @@ void NonPrintableKeys(int key, int x, int y) {
 
 void MouseMoved(int x, int y) {
 	//If mouse pressed then check than swap the balls and if after swaping balls dont brust then reswap the balls
-	cout << "x: " << x << " y: " << y << endl;
+	
 }
 
 /*This function is called (automatically) whenever your mouse button is clicked witin inside the game window
@@ -431,20 +567,20 @@ void MouseClicked(int button, int state, int x, int y) {
 
 	if (button == GLUT_LEFT_BUTTON && state == GLUT_UP) // dealing only with left button
 	{
-		// Tweaking x alignmnet
-		if (x <= 445 || x >= 600)
+		if (speedX == 0 && speedY == 0)
 		{
-			x -= 30;
+			// Change in x and y positions
+			float dx = x - ballPosX;
+			float dy = height - (y - ballPosY);
+
+			// Hypotenuse
+			float d = sqrt(dx * dx + dy * dy);
+
+			// Speed at which the ball's coordinates will change with
+			speedX = (dx / d) * 10.0;
+			speedY = (dy / d) * 10.0;
 		}
 
-		// Tweaking y alignmnet
-		y -= 70;
-
-		if (dx == 0 && dy == 0)
-		{
-			dx = (x - 460) / 50.0;
-			dy = (550 - y) / 50.0;
-		}
 	}
 	else if (button == GLUT_RIGHT_BUTTON) // dealing with right button
 	{
@@ -490,12 +626,9 @@ void Timer(int m)
 int main(int argc, char*argv[]) {
 	InitRandomizer(); // seed the random number generator...
 
-	//Dictionary for matching the words. It contains the 370099 words.
+	//Dictionary for matching the words. It contains the 369646 words.
 	dictionary = new string[dictionarysize]; 
 	ReadWords("words_alpha.txt", dictionary); // dictionary is an array of strings
-	//print first 5 words from the dictionary
-	for(int i=0; i < 5; ++i)
-		cout<< " word "<< i << " =" << dictionary[i] <<endl;
 
 	//Write your code here for filling the canvas with different Alphabets. You can use the Getalphabet function for getting the random alphabets
 	for (int i = 0; i < 10; i++)
@@ -515,6 +648,7 @@ int main(int argc, char*argv[]) {
 
 
 	shooterBall = GetAlphabet();
+	newShooterBall = GetAlphabet();
 	glutInit(&argc, argv); // initialize the graphics library...
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA); // we will be using color display mode
 	glutInitWindowPosition(50, 50); // set the initial position of our window
