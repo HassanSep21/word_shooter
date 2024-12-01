@@ -10,6 +10,8 @@
 
 //#include <GL/gl.h>
 //#include <GL/glut.h>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_mixer.h>
 #include <iostream>
 #include<string>
 #include<cmath>
@@ -20,6 +22,8 @@ using namespace std;
 #define MIN(A,B) ((A) < (B) ? (A):(B))
 #define ABS(A) ((A) < (0) ? -(A):(A))
 #define FPS 60
+
+Mix_Music* bgMusic = nullptr;
 
 string * dictionary;
 int dictionarysize = 369646;
@@ -65,8 +69,42 @@ int ballPosY = 10;
 float speedX;
 float speedY;
 
-// int startingIndex;
-// int endingIndex;
+void initAudio() {
+    // Initialize SDL audio subsystem
+    if (SDL_Init(SDL_INIT_AUDIO) < 0) {
+        printf("SDL could not initialize! SDL Error: %s\n", SDL_GetError());
+        return;
+    }
+
+    // Initialize SDL_mixer
+    if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0) {
+        printf("SDL_mixer could not initialize! SDL_mixer Error: %s\n", Mix_GetError());
+        return;
+    }
+
+    // Load music
+    bgMusic = Mix_LoadMUS("music.mp3");
+    if (!bgMusic) {
+        printf("Failed to load music! SDL_mixer Error: %s\n", Mix_GetError());
+        return;
+    }
+
+    // Play music on loop
+    Mix_PlayMusic(bgMusic, -1);
+}
+
+void cleanupAudio() {
+    // Free the music
+    Mix_FreeMusic(bgMusic);
+    
+    // Close SDL_mixer
+    Mix_CloseAudio();
+    
+    // Quit SDL subsystems
+    SDL_Quit();
+}
+
+
 
 //USED THIS CODE FOR WRITING THE IMAGES TO .bin FILE
 void RegisterTextures_Write()
@@ -754,6 +792,9 @@ int main(int argc, char*argv[]) {
 
 	shooterBall = GetAlphabet();
 	newShooterBall = GetAlphabet();
+
+	initAudio();
+
 	glutInit(&argc, argv); // initialize the graphics library...
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA); // we will be using color display mode
 	glutInitWindowPosition(50, 50); // set the initial position of our window
@@ -775,6 +816,8 @@ int main(int argc, char*argv[]) {
 
 	//// now handle the control to library and it will call our registered functions when
 	//// it deems necessary...
+
+	atexit(cleanupAudio);
 
 	glutMainLoop();
 
