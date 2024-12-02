@@ -63,7 +63,6 @@ int awidth = 60, aheight = 60; // 60x60 pixels cookies...
 // MY VARIABLES
 float sec = 150;
 
-// int board[10][15];
 int shooterBall;
 int newShooterBall;
 
@@ -75,9 +74,6 @@ float speedY;
 
 bool initialCheck = true;
 int checks = 4;
-float waitOver = 1;
-bool wait = false;
-
 int wordCount = 0;
 bool match = false;
 
@@ -261,14 +257,15 @@ void DrawAlphabet(const alphabets &cname, int sx, int sy, int cwidth = 60, int c
 
 	// glutSwapBuffers();
 }
-int GetAlphabet() {
-	return GetRandInRange(1, 26);
+int GetAlphabet() 
+{
+	return GetRandInRange(0, 26);
 }
 
 void Pixels2Cell(int px, int py, int & cx, int &cy) 
 {
 	cx = round((px + 10) / 60);
-	cy = round(py / 60);
+	cy = round((py + 10) / 60);
 }
 void Cell2Pixels(int cx, int cy, int & px, int &py)
 {
@@ -277,7 +274,6 @@ void Cell2Pixels(int cx, int cy, int & px, int &py)
 	py = cy * 60 + 10;
 }
 void DrawShooter(int sx, int sy, int cwidth = 60, int cheight = 60)
-
 {
 	float fwidth = (float)cwidth / width * 2, fheight = (float)cheight
 		/ height * 2;
@@ -593,6 +589,11 @@ void updateBall()
 
 		board[9 - ballPosY][ballPosX] = shooterBall;
 
+		if (ballPosX >= 6 && ballPosX <= 9 && 9 - ballPosY == 8)
+		{
+			sec = 0;
+		}
+
 		Cell2Pixels(ballPosX, ballPosY, ballPosX, ballPosY);
 	}
 }
@@ -707,10 +708,10 @@ void DisplayFunction()
 		{
 			Pixels2Cell(ballPosX, ballPosY, ballPosX, ballPosY);
 
+			leftDiagWordCheck(ballPosX, 9 - ballPosY);
+			rightDiagWordCheck(ballPosX, 9 - ballPosY);
 			vertWordCheck(9 - ballPosY, ballPosX);
 			horzWordCheck(ballPosX, 9 - ballPosY);
-			rightDiagWordCheck(ballPosX, 9 - ballPosY);
-			leftDiagWordCheck(ballPosX, 9 - ballPosY);
 
 			Cell2Pixels(ballPosX, ballPosY, ballPosX, ballPosY);
 
@@ -749,7 +750,8 @@ void DisplayFunction()
 *  that is what dimensions (x and y) your game will have
 *  Note that the bottom-left coordinate has value (0,0) and top-right coordinate has value (width-1,height-1)
 * */
-void SetCanvasSize(int width, int height) {
+void SetCanvasSize(int width, int height) 
+{
 	/*glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	glOrtho(0, width, 0, height, -1, 1); // set the screen size to given width and height.*/
@@ -765,7 +767,8 @@ void SetCanvasSize(int width, int height) {
 *
 * */
 
-void NonPrintableKeys(int key, int x, int y) {
+void NonPrintableKeys(int key, int x, int y) 
+{
 	if (key == GLUT_KEY_LEFT /*GLUT_KEY_LEFT is constant and contains ASCII for left arrow key*/) {
 		// what to do when left key is pressed...
 
@@ -792,9 +795,9 @@ void NonPrintableKeys(int key, int x, int y) {
 *
 * */
 
-void MouseMoved(int x, int y) {
+void MouseMoved(int x, int y) 
+{
 	//If mouse pressed then check than swap the balls and if after swaping balls dont brust then reswap the balls
-	
 }
 
 /*This function is called (automatically) whenever your mouse button is clicked witin inside the game window
@@ -806,10 +809,17 @@ void MouseMoved(int x, int y) {
 *
 * */
 
-void MouseClicked(int button, int state, int x, int y) {
+void MouseClicked(int button, int state, int x, int y) 
+{
 
 	if (button == GLUT_LEFT_BUTTON && state == GLUT_UP) // dealing only with left button
 	{
+		// Minimum y coordinate check
+		if (y >= 600)
+		{
+			y = 600;
+		}
+
 		if (speedX == 0 && speedY == 0)
 		{
 			// Change in x and y positions
@@ -819,9 +829,13 @@ void MouseClicked(int button, int state, int x, int y) {
 			// Hypotenuse
 			float d = sqrt(dx * dx + dy * dy);
 
+			// Step speed
+			float spdx = 810 / FPS;
+			float spdy = 540 / FPS;
+
 			// Speed at which the ball's coordinates will change with
-			speedX = (dx / d) * 10.0;
-			speedY = (dy / d) * 10.0;
+			speedX = (dx / d) * spdx;
+			speedY = (dy / d) * spdy;
 		}
 
 	}
@@ -839,7 +853,8 @@ void MouseClicked(int button, int state, int x, int y) {
 * This function has three argument variable key contains the ASCII of the key pressed, while x and y tells the
 * program coordinates of mouse pointer when key was pressed.
 * */
-void PrintableKeys(unsigned char key, int x, int y) {
+void PrintableKeys(unsigned char key, int x, int y) 
+{
 	if (key == KEY_ESC/* Escape key ASCII*/) {
 		exit(1); // exit the program when escape key is pressed.
 	}
@@ -866,7 +881,8 @@ void Timer(int m)
 /*
 * our gateway main function
 * */
-int main(int argc, char*argv[]) {
+int main(int argc, char*argv[]) 
+{
 	InitRandomizer(); // seed the random number generator...
 
 	//Dictionary for matching the words. It contains the 369646 words.
