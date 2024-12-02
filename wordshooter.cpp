@@ -23,6 +23,8 @@ using namespace std;
 #define ABS(A) ((A) < (0) ? -(A):(A))
 #define FPS 60
 
+// int FPS = 60;
+
 Mix_Music* bgMusic = nullptr;
 
 string * dictionary;
@@ -39,7 +41,9 @@ int nxcells = (width - bradius) / (2 * bradius);
 int nycells = (height - byoffset /*- bradius*/) / (2 * bradius);
 int nfrows = 2; // initially number of full rows //
 float score = 0;
-int **board; // 2D-arrays for holding the data...
+
+int **board = new int *[10]; // 2D-arrays for holding the data...
+
 int bwidth = 130;
 int bheight = 10;
 int bsx, bsy;
@@ -57,9 +61,9 @@ int awidth = 60, aheight = 60; // 60x60 pixels cookies...
 
 
 // MY VARIABLES
-float sec = 120;
+float sec = 150;
 
-int letters[10][15];
+// int board[10][15];
 int shooterBall;
 int newShooterBall;
 
@@ -69,22 +73,35 @@ int ballPosY = 10;
 float speedX;
 float speedY;
 
-void initAudio() {
+bool initialCheck = true;
+int checks = 4;
+float waitOver = 1;
+bool wait = false;
+
+int wordCount = 0;
+bool match = false;
+
+/* FOR BACKGROUNG MUSIC */
+void initAudio() 
+{
     // Initialize SDL audio subsystem
-    if (SDL_Init(SDL_INIT_AUDIO) < 0) {
+    if (SDL_Init(SDL_INIT_AUDIO) < 0) 
+	{
         printf("SDL could not initialize! SDL Error: %s\n", SDL_GetError());
         return;
     }
 
     // Initialize SDL_mixer
-    if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0) {
+    if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0) 
+	{
         printf("SDL_mixer could not initialize! SDL_mixer Error: %s\n", Mix_GetError());
         return;
     }
 
     // Load music
     bgMusic = Mix_LoadMUS("music.mp3");
-    if (!bgMusic) {
+    if (!bgMusic) 
+	{
         printf("Failed to load music! SDL_mixer Error: %s\n", Mix_GetError());
         return;
     }
@@ -103,8 +120,7 @@ void cleanupAudio() {
     // Quit SDL subsystems
     SDL_Quit();
 }
-
-
+/* FOR BACKGROUNG MUSIC */
 
 //USED THIS CODE FOR WRITING THE IMAGES TO .bin FILE
 void RegisterTextures_Write()
@@ -252,7 +268,7 @@ int GetAlphabet() {
 void Pixels2Cell(int px, int py, int & cx, int &cy) 
 {
 	cx = round((px + 10) / 60);
-	cy = py / 60;
+	cy = round(py / 60);
 }
 void Cell2Pixels(int cx, int cy, int & px, int &py)
 {
@@ -292,6 +308,16 @@ void DrawShooter(int sx, int sy, int cwidth = 60, int cheight = 60)
 }
 
 // MY FUNCTIONS
+void writeToTxt(string word)
+{
+	ofstream outFile("words_made.txt", ios::app);
+	if (outFile.is_open())
+	{
+		outFile << ++wordCount << " " << word << endl;
+	}
+	outFile.close();
+}
+
 void horzWordCheck(int start, int i)
 {
 	for (int k = 14; k < start - 1; k--)
@@ -300,12 +326,12 @@ void horzWordCheck(int start, int i)
 
 		for (int j = start; j <= k; j++)
 		{
-			if(letters[i][j] == -1)
+			if(board[i][j] == -1)
 			{
 				break;
 			}
 
-			str += char ('a' + letters[i][j]);
+			str += char ('a' + board[i][j]);
 		}
 
 		if (str.length() > 2)
@@ -315,12 +341,13 @@ void horzWordCheck(int start, int i)
 				if (str.length() == dictionary[word].length() && str == dictionary[word])
 				{
 					cout << "found: " << str << endl;
+					writeToTxt(str);
 
 					score += str.length();
 
 					for (int j = start; j <= k; j++)
 					{
-						letters[i][j] = -1;
+						board[i][j] = -1;
 					}
 				}
 			}
@@ -335,12 +362,12 @@ void horzWordCheck(int start, int i)
 
 		for (int j = k; j <= end; j++)
 		{
-			if(letters[i][j] == -1)
+			if(board[i][j] == -1)
 			{
 				break;
 			}
 
-			str += char ('a' + letters[i][j]);
+			str += char ('a' + board[i][j]);
 		}
 
 		if (str.length() > 2)
@@ -350,12 +377,13 @@ void horzWordCheck(int start, int i)
 				if (str.length() == dictionary[word].length() && str == dictionary[word])
 				{
 					cout << "found: " << str << endl;
+					writeToTxt(str);
 
 					score += str.length();
 
 					for (int j = k; j <= end; j++)
 					{
-						letters[i][j] = -1;
+						board[i][j] = -1;
 					}
 				}
 			}
@@ -371,12 +399,12 @@ void vertWordCheck(int end, int j)
 
 		for (int i = k; i <= end; i++)
 		{
-			if (letters[i][j] == -1)
+			if (board[i][j] == -1)
 			{
 				break;
 			}
 
-			str += char('a' + letters[i][j]);
+			str += char('a' + board[i][j]);
 		}
 
 		if (str.length() > 2)
@@ -386,12 +414,13 @@ void vertWordCheck(int end, int j)
 				if (str.length() == dictionary[word].length() && str == dictionary[word])
 				{
 					cout << "found: " << str << endl;
+					writeToTxt(str);
 
 					score += str.length();
 
 					for (int i = k; i <= end; i++)
 					{
-						letters[i][j] = -1;
+						board[i][j] = -1;
 					}
 				}
 			}
@@ -419,12 +448,12 @@ void rightDiagWordCheck(int startX, int startY)
 
 		while (i >= endY && j <= endX)
 		{
-			if (letters[i][j] == -1)
+			if (board[i][j] == -1)
 			{
 				break;
 			}
 
-			str += char('a' + letters[i--][j++]);
+			str += char('a' + board[i--][j++]);
 		}
 
 		if (str.length() > 2)
@@ -434,6 +463,7 @@ void rightDiagWordCheck(int startX, int startY)
 				if (str.length() == dictionary[word].length() && str == dictionary[word])
 				{
 					cout << "found: " << str << endl;
+					writeToTxt(str);
 
 					score += str.length();
 
@@ -442,7 +472,7 @@ void rightDiagWordCheck(int startX, int startY)
 
 					while (i >= endY && j <= endX)
 					{
-						letters[i--][j++] = -1;
+						board[i--][j++] = -1;
 					}
 				}
 			}
@@ -473,12 +503,12 @@ void leftDiagWordCheck(int startX, int startY)
 
 		while (i >= endY && j >= endX)
 		{
-			if (letters[i][j] == -1)
+			if (board[i][j] == -1)
 			{
 				break;
 			}
 
-			str = char('a' + letters[i--][j--]) + str;
+			str = char('a' + board[i--][j--]) + str;
 		}
 
 		if (str.length() > 2)
@@ -488,6 +518,7 @@ void leftDiagWordCheck(int startX, int startY)
 				if (str.length() == dictionary[word].length() && str == dictionary[word])
 				{
 					cout << "found: " << str << endl;
+					writeToTxt(str);
 
 					score += str.length();
 
@@ -496,7 +527,7 @@ void leftDiagWordCheck(int startX, int startY)
 
 					while (i >= endY && j >= endX)
 					{
-						letters[i--][j--] = -1;
+						board[i--][j--] = -1;
 					}
 				}
 			}
@@ -514,16 +545,16 @@ bool checkCollision()
 
 	Pixels2Cell(ballPosX, ballPosY, tmpX, tmpY);
 
-	bool top = (9 - tmpY - 1 >= 0) && (letters[9 - tmpY - 1][tmpX] != -1);
-	bool topLeft = (9 - tmpY - 1 >= 0) && (tmpX - 1 >= 0) && (letters[9 - tmpY - 1][tmpX - 1] != -1);
-	bool topRight = (9 - tmpY - 1 >= 0) && (tmpX + 1 < 15) && (letters[9 - tmpY - 1][tmpX + 1] != -1);
+	bool top = (9 - tmpY - 1 >= 0) && (board[9 - tmpY - 1][tmpX] != -1);
+	bool topLeft = (9 - tmpY - 1 >= 0) && (tmpX - 1 >= 0) && (board[9 - tmpY - 1][tmpX - 1] != -1);
+	bool topRight = (9 - tmpY - 1 >= 0) && (tmpX + 1 < 15) && (board[9 - tmpY - 1][tmpX + 1] != -1);
 
-	bool bottom = (9 - tmpY + 1 < 10) && (letters[9 - tmpY + 1][tmpX] != -1);
-	bool bottomLeft = (9 - tmpY + 1 >= 0) && (tmpX - 1 >= 0) && (letters[9 - tmpY - 1][tmpX - 1] != -1);
-	bool bottomRight = (9 - tmpY + 1 >= 0) && (tmpX + 1 < 15) && (letters[9 - tmpY - 1][tmpX + 1] != -1);
+	bool bottom = (9 - tmpY + 1 < 10) && (board[9 - tmpY + 1][tmpX] != -1);
+	bool bottomLeft = (9 - tmpY + 1 >= 0) && (tmpX - 1 >= 0) && (board[9 - tmpY - 1][tmpX - 1] != -1);
+	bool bottomRight = (9 - tmpY + 1 >= 0) && (tmpX + 1 < 15) && (board[9 - tmpY - 1][tmpX + 1] != -1);
 
-	bool left = (tmpX - 1 >= 0) && (letters[9 - tmpY][tmpX - 1] != -1);
-	bool right = (tmpX + 1 < 15) && (letters[9 - tmpY][tmpX + 1] != -1);
+	bool left = (tmpX - 1 >= 0) && (board[9 - tmpY][tmpX - 1] != -1);
+	bool right = (tmpX + 1 < 15) && (board[9 - tmpY][tmpX + 1] != -1);
 
 	return top || topLeft || topRight || bottom || bottomLeft || bottomRight || left || right;
 	// return top || bottom || left || right;
@@ -539,7 +570,7 @@ void displayRows()
 		posX = 10;
 		for (int j = 0; j < 15; j++)
 		{
-			DrawAlphabet((alphabets)letters[i][j], posX, posY, awidth, aheight);
+			DrawAlphabet((alphabets)board[i][j], posX, posY, awidth, aheight);
 			posX += 60;
 		}
 		posY -= 60;
@@ -560,7 +591,7 @@ void updateBall()
 	{
 		Pixels2Cell(ballPosX, ballPosY, ballPosX, ballPosY);
 
-		letters[9 - ballPosY][ballPosX] = shooterBall;
+		board[9 - ballPosY][ballPosX] = shooterBall;
 
 		Cell2Pixels(ballPosX, ballPosY, ballPosX, ballPosY);
 	}
@@ -578,10 +609,56 @@ void resetball()
 	newShooterBall = GetAlphabet();
 }
 
+void checkRows(int i, int startX)
+{
+	match = false;
+
+	for (int endx = 14; endx > startX + 1; endx--)
+	{
+		string str = "";
+
+		for (int j = startX; j <= endx; j++)
+		{
+			str += char('a' + board[i][j]);
+		}
+
+		for (int word = 0; word < dictionarysize; word++)
+		{
+			if (str.length() == dictionary[word].length() && str == dictionary[word])
+			{
+				match = true;
+
+				score += str.length();
+
+				cout << "found: " << str << endl;
+				writeToTxt(str);
+
+				for (int start = startX; start <= endx; start++)
+				{
+					board[i][start] = -1;
+				}
+
+				for (int start = startX; start <= endx; start++)
+				{
+					board[i][start] = GetAlphabet();
+				}
+
+				checks--;
+
+				if (checks == 0)
+				{
+					return;
+				}
+			}
+		}
+	}
+}
+
 /*
 * Main Canvas drawing function.
 * */
-void DisplayFunction() {
+void DisplayFunction() 
+{
 	// set the background color using function glClearColor.
 	// to change the background play with the red, green and blue values below.
 	// Note that r, g and b values must be in the range [0,1] where 0 means dim red and 1 means pure red and so on.
@@ -591,7 +668,30 @@ void DisplayFunction() {
 	glClear(GL_COLOR_BUFFER_BIT); //Update the colors
 
 	//write your drawing commands here or call your drawing functions...
-	if (sec > 0)
+
+	if (initialCheck)
+	{	
+		displayRows();
+
+		while (initialCheck)
+		{
+			for (int i = 0; i < 2; i++)
+			{
+				match = true;
+				for (int j = 0; j < 15; j++)
+				{
+					checkRows(i, j);
+				}
+
+				if (checks == 0 || !match)
+				{
+					initialCheck = false;
+					break;
+				}
+			}
+		}
+	}
+	else if (sec > 0)
 	{
 		/*Display Rows*/
 		displayRows();
@@ -756,7 +856,7 @@ void Timer(int m)
 {
 	if (sec > 0)
 	{
-		sec -= 1 / 60.0;
+		sec -= 1 / float(FPS);
 	}
 
 	glutPostRedisplay();
@@ -773,27 +873,44 @@ int main(int argc, char*argv[]) {
 	dictionary = new string[dictionarysize]; 
 	ReadWords("words_alpha.txt", dictionary); // dictionary is an array of strings
 
+	// Open file to store popped words
+	ofstream outFile("words_made.txt");
+	if (outFile.is_open())
+	{
+		outFile << "Words Made: " << endl
+				<< "-----------" << endl;
+	}
+	outFile.close();
+
 	//Write your code here for filling the canvas with different Alphabets. You can use the Getalphabet function for getting the random alphabets
+
+	// Allocate Memory for board
+	for (int i = 0; i < 10; i++)
+	{
+		board[i] = new int[15];
+	}
+
+	// Populate board with letters
 	for (int i = 0; i < 10; i++)
 	{
 		for (int j = 0; j < 15; j++)
 		{
 			if (i < nfrows)
 			{
-				letters[i][j] = GetAlphabet();
+				board[i][j] = GetAlphabet();
 			}
 			else
 			{
-				letters[i][j] = -1;
+				board[i][j] = -1;
 			}
 		}
 	}
 
-
+	// Initial Shooter ball
 	shooterBall = GetAlphabet();
 	newShooterBall = GetAlphabet();
 
-	initAudio();
+	initAudio(); // Initialize audio for bg music
 
 	glutInit(&argc, argv); // initialize the graphics library...
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA); // we will be using color display mode
@@ -820,6 +937,14 @@ int main(int argc, char*argv[]) {
 	atexit(cleanupAudio);
 
 	glutMainLoop();
+
+	// Free Board
+	for (int i = 0; i < 10; i++) 
+	{
+		delete[] board[i];
+	}
+
+	delete[] board;
 
 	return 1;
 }

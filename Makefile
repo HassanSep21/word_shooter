@@ -1,4 +1,4 @@
-CXXFLAGS = -g3 -Wall -fmessage-length=0 `sdl2-config --cflags`
+CXXFLAGS = -g3 -Wall -fmessage-length=0 `sdl2-config --cflags` -w
 
 OBJS = wordshooter.o util.o
 
