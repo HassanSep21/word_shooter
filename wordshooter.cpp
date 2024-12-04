@@ -8,10 +8,11 @@
 #ifndef WORD_SHOOTER_CPP
 #define WORD_SHOOTER_CPP
 
-//#include <GL/gl.h>
-//#include <GL/glut.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_mixer.h>
+
+//#include <GL/gl.h>
+//#include <GL/glut.h>
 #include <iostream>
 #include<string>
 #include<cmath>
@@ -73,9 +74,14 @@ float speedX;
 float speedY;
 
 bool initialCheck = true;
-int checks = 4;
+int checks = 0;
 int wordCount = 0;
 bool match = false;
+
+float finalX[10];
+float finalY[10];
+
+bool start = false;
 
 /* FOR BACKGROUNG MUSIC */
 void initAudio() 
@@ -466,7 +472,7 @@ void rightDiagWordCheck(int startX, int startY)
 					i = startY;
 					j = startX;
 
-					while (i >= endY && j <= endX)
+					for (int p = 0; p < str.length(); p++)
 					{
 						board[i--][j++] = -1;
 					}
@@ -521,7 +527,7 @@ void leftDiagWordCheck(int startX, int startY)
 					i = startY;
 					j = startX;
 
-					while (i >= endY && j >= endX)
+					for (int p = 0; p < str.length(); p++)
 					{
 						board[i--][j--] = -1;
 					}
@@ -552,8 +558,8 @@ bool checkCollision()
 	bool left = (tmpX - 1 >= 0) && (board[9 - tmpY][tmpX - 1] != -1);
 	bool right = (tmpX + 1 < 15) && (board[9 - tmpY][tmpX + 1] != -1);
 
-	return top || topLeft || topRight || bottom || bottomLeft || bottomRight || left || right;
-	// return top || bottom || left || right;
+	// return top || topLeft || topRight || bottom || bottomLeft || bottomRight || left || right;
+	return top || bottom || left || right;
 }
 
 void displayRows()
@@ -573,6 +579,38 @@ void displayRows()
 	}
 }
 
+void checkVacancy(int &x, int &y)
+{
+	if (board[9 - y][x] == -1)
+	{
+		return;
+	}
+
+	if (board[9 - y - 1][x - 1] == -1)
+	{
+		x--;
+		y--;
+
+		if (board[9 - y - 1][x - 1] == -1)
+		{
+			x--;
+			y--;
+		}
+		else
+		{
+			x++;
+			y--;
+		}
+
+	}
+	else
+	{
+		x++;
+		y--;
+	}
+}
+
+
 void updateBall()
 {
 	ballPosX += speedX;
@@ -586,6 +624,8 @@ void updateBall()
 	if (checkCollision())
 	{
 		Pixels2Cell(ballPosX, ballPosY, ballPosX, ballPosY);
+
+		checkVacancy(ballPosX, ballPosY);
 
 		board[9 - ballPosY][ballPosX] = shooterBall;
 
@@ -612,47 +652,49 @@ void resetball()
 
 void checkRows(int i, int startX)
 {
-	match = false;
+    string longestWord = "";
+    int endIndex = -1;
 
-	for (int endx = 14; endx > startX + 1; endx--)
-	{
-		string str = "";
+    for (int endx = 14; endx > startX + 1; endx--)
+    {
+        string str = "";
+        for (int j = startX; j <= endx; j++)
+        {
+            str += char('a' + board[i][j]);
+        }
 
-		for (int j = startX; j <= endx; j++)
-		{
-			str += char('a' + board[i][j]);
-		}
+        for (int word = 0; word < dictionarysize; word++)
+        {
+            if (str == dictionary[word])
+            {
+                if (str.length() > longestWord.length())
+                {
+                    longestWord = str;
+                    endIndex = endx;
+                }
+            }
+        }
+    }
 
-		for (int word = 0; word < dictionarysize; word++)
-		{
-			if (str.length() == dictionary[word].length() && str == dictionary[word])
-			{
-				match = true;
+    if (longestWord != "")
+    {
+        if (checks == 4)
+        {
+            return;
+        }
+        
+        score += longestWord.length();
 
-				score += str.length();
+        cout << "found: " << longestWord << endl;
+        writeToTxt(longestWord);
 
-				cout << "found: " << str << endl;
-				writeToTxt(str);
-
-				for (int start = startX; start <= endx; start++)
-				{
-					board[i][start] = -1;
-				}
-
-				for (int start = startX; start <= endx; start++)
-				{
-					board[i][start] = GetAlphabet();
-				}
-
-				checks--;
-
-				if (checks == 0)
-				{
-					return;
-				}
-			}
-		}
-	}
+        for (int start = startX; start <= endIndex; start++)
+        {
+            board[i][start] = -1;
+        }
+        
+        checks++;
+    }
 }
 
 /*
@@ -670,73 +712,154 @@ void DisplayFunction()
 
 	//write your drawing commands here or call your drawing functions...
 
-	if (initialCheck)
-	{	
-		displayRows();
+	if (start)
+	{
 
-		while (initialCheck)
-		{
-			for (int i = 0; i < 2; i++)
+		if (initialCheck)
+		{	
+			bool popped = false;
+			
+			displayRows();
+
+			if (checks == 4)
 			{
-				match = true;
-				for (int j = 0; j < 15; j++)
+				// Fill if empty space is left
+				for (int i = 0; i < 2; i++)
 				{
-					checkRows(i, j);
+					for (int j = 0; j < 15; j++)
+					{
+						if (board[i][j] == -1)
+						{
+							board[i][j] = GetAlphabet();
+						}
+					}
 				}
 
-				if (checks == 0 || !match)
+				initialCheck = false;
+
+				return;
+			}
+
+			if (sec <= 149.95 || sec <= 149.85)
+			{
+				bool fill = false;
+				for (int i = 0; i < 2; i++)
 				{
-					initialCheck = false;
-					break;
+					for (int j = 0; j < 15; j++)
+					{
+						if (board[i][j] == -1)
+						{
+							board[i][j] = GetAlphabet();
+							popped = false;
+							fill = true;
+						}
+					}
+				}
+				if (!fill)
+				{
+					checks = 4;
 				}
 			}
-		}
-	}
-	else if (sec > 0)
-	{
-		/*Display Rows*/
-		displayRows();
-			
-		/*Move Ball*/
-		if (!checkCollision())
-		{
-			updateBall();
-		}
 
-		/*When the ball reaches the rows*/
+			if (sec > 149.95 || sec > 149.85)
+			{
+				for (int i = 0; i < 2; i++)
+				{
+					for (int j = 0; j < 15; j++)
+					{
+						checkRows(i, j);
+					}
+				}
+				popped = true;
+			}
+		}
+		else if (sec > 0)
+		{
+			/*Display Rows*/
+			displayRows();
+				
+			/*Move Ball*/
+			if (!checkCollision())
+			{
+				updateBall();
+			}
+
+			/*When the ball reaches the rows*/
+			else
+			{
+				Pixels2Cell(ballPosX, ballPosY, ballPosX, ballPosY);
+
+				leftDiagWordCheck(ballPosX, 9 - ballPosY);
+				rightDiagWordCheck(ballPosX, 9 - ballPosY);
+				vertWordCheck(9 - ballPosY, ballPosX);
+				horzWordCheck(ballPosX, 9 - ballPosY);
+
+				Cell2Pixels(ballPosX, ballPosY, ballPosX, ballPosY);
+
+				/*Generate new ball and reset its position*/
+				resetball();
+			}
+
+
+			/* SHOOTER'S BALL */
+			DrawAlphabet((alphabets)shooterBall, ballPosX, ballPosY, awidth, aheight);
+			DrawAlphabet((alphabets)newShooterBall, 800, 10, awidth, aheight);
+
+			/* Aimer */
+			for (int i = 9; i >= 0; i--)
+			{
+				DrawString(finalX[i], finalY[i], width, height, "o", colors[BLUE]);
+			}
+
+			/* TEXTS TO BE DISPLAYED */
+			DrawString(40, height - 20, width, height + 5, "Score: " + Num2Str(score), colors[BLUE_VIOLET]);
+			DrawString(width / 2 - 130, height - 20, width, height + 5, "Hassan Ahmed [24i-2521]", colors[BLUE_VIOLET]);
+			DrawString(width - 200, height - 25, width, height, "Time Left:" + Num2Str(sec) + " sec", colors[RED]);
+			DrawString(790, 90, width, height, "Next ball:", colors[BLACK]);
+		}
 		else
 		{
-			Pixels2Cell(ballPosX, ballPosY, ballPosX, ballPosY);
+			/* GAME OVER SCREEN */
 
-			leftDiagWordCheck(ballPosX, 9 - ballPosY);
-			rightDiagWordCheck(ballPosX, 9 - ballPosY);
-			vertWordCheck(9 - ballPosY, ballPosX);
-			horzWordCheck(ballPosX, 9 - ballPosY);
+			// GAME
+			DrawAlphabet((alphabets)6, width / 2 - 180, height / 2 + 70, awidth, aheight);
+			DrawAlphabet((alphabets)0, width / 2 - 120, height / 2 + 70, awidth, aheight);
+			DrawAlphabet((alphabets)12, width / 2 - 60, height / 2 + 70, awidth, aheight);
+			DrawAlphabet((alphabets)4, width / 2, height / 2 + 70, awidth, aheight);
 
-			Cell2Pixels(ballPosX, ballPosY, ballPosX, ballPosY);
+			// OVER
+			DrawAlphabet((alphabets)14, width / 2 - 60, height / 2, awidth, aheight);
+			DrawAlphabet((alphabets)21, width / 2, height / 2, awidth, aheight);
+			DrawAlphabet((alphabets)4, width / 2 + 60, height / 2, awidth, aheight);
+			DrawAlphabet((alphabets)17, width / 2 + 120, height / 2, awidth, aheight);
 
-			/*Generate new ball and reset its position*/
-			resetball();
+			DrawString(360, height / 2 - 100, width, height + 5, "FINAL SCORE: " + Num2Str(score), colors[GREEN]);
+			DrawString(340, height / 2 - 200, width, height + 5, "PRESS [ESC] TO QUIT", colors[GRAY]);
 		}
-
-
-		/* SHOOTER'S BALL */
-		DrawAlphabet((alphabets)shooterBall, ballPosX, ballPosY, awidth, aheight);
-		DrawAlphabet((alphabets)newShooterBall, 800, 10, awidth, aheight);
-
-		/* TEXTS TO BE DISPLAYED */
-		DrawString(40, height - 20, width, height + 5, "Score: " + Num2Str(score), colors[BLUE_VIOLET]);
-		DrawString(width / 2 - 130, height - 20, width, height + 5, "Hassan Ahmed [24i-2521]", colors[BLUE_VIOLET]);
-		DrawString(width - 200, height - 25, width, height, "Time Left:" + Num2Str(sec) + " sec", colors[RED]);
-		DrawString(790, 90, width, height, "Next ball:", colors[BLACK]);
 	}
 	else
 	{
-		/* GAME OVER SCREEN */
-		DrawString(width / 2 - 130, height - 20, width, height + 5, "Hassan Ahmed [24i-2521]", colors[BLUE_VIOLET]);
-		DrawString(350, height / 2 + 30, width, height + 5, "!!!GAME OVER!!!", colors[RED]);
-		DrawString(360, height / 2, width, height + 5, "FINAL SCORE: " + Num2Str(score), colors[GREEN]);
-		DrawString(340, height / 2 - 100, width, height + 5, "PRESS [ESC] TO QUIT", colors[GRAY]);
+		// WORD
+		DrawAlphabet((alphabets)22, width / 2 - 120, height / 2 + 150, awidth, aheight);
+		DrawAlphabet((alphabets)14, width / 2 - 60, height / 2 + 150, awidth, aheight);
+		DrawAlphabet((alphabets)17, width / 2, height / 2 + 150, awidth, aheight);
+		DrawAlphabet((alphabets)3, width / 2 + 60, height / 2 + 150, awidth, aheight);
+
+		// SHOOTER
+		DrawAlphabet((alphabets)18, width / 2 - 220, height / 2 + 70, awidth, aheight);
+		DrawAlphabet((alphabets)7, width / 2 - 160, height / 2 + 70, awidth, aheight);
+		DrawAlphabet((alphabets)14, width / 2 - 100, height / 2 + 70, awidth, aheight);
+		DrawAlphabet((alphabets)14, width / 2 - 40, height / 2 + 70, awidth, aheight);
+		DrawAlphabet((alphabets)19, width / 2 + 20, height / 2 + 70, awidth, aheight);
+		DrawAlphabet((alphabets)4, width / 2 + 80, height / 2 + 70, awidth, aheight);
+		DrawAlphabet((alphabets)17, width / 2 + 140, height / 2 + 70, awidth, aheight);
+
+		// START
+		DrawAlphabet((alphabets)18, width / 2 - 160, height / 2 - 180, awidth, aheight);
+		DrawAlphabet((alphabets)19, width / 2 - 100, height / 2 - 180, awidth, aheight);
+		DrawAlphabet((alphabets)0, width / 2 - 40, height / 2 - 180, awidth, aheight);
+		DrawAlphabet((alphabets)17, width / 2 + 20, height / 2 - 180, awidth, aheight);
+		DrawAlphabet((alphabets)19, width / 2 + 80, height / 2 - 180, awidth, aheight);
 	}
 
 	// #----------------- Write your code till here ----------------------------#
@@ -797,7 +920,25 @@ void NonPrintableKeys(int key, int x, int y)
 
 void MouseMoved(int x, int y) 
 {
+	// cout << x << " " << y << endl;
 	//If mouse pressed then check than swap the balls and if after swaping balls dont brust then reswap the balls
+	/** CACULATION OF AIMERS COORDINATES **/
+	float d = sqrt((pow((x - 490), 2) + pow((620 - y), 2)));
+
+	float ratios[10];
+	float tmp = 100.0;
+
+	for (int i = 0; i < 10; i++)
+	{
+		ratios[i] = d / tmp;
+		tmp += 60;
+	}
+
+	for (int i = 0; i < 10; i++)
+	{
+		finalX[i] = ((x - 490) / ratios[i] + 490);
+		finalY[i] = ((620 - y) / ratios[i]);
+	}
 }
 
 /*This function is called (automatically) whenever your mouse button is clicked witin inside the game window
@@ -814,28 +955,38 @@ void MouseClicked(int button, int state, int x, int y)
 
 	if (button == GLUT_LEFT_BUTTON && state == GLUT_UP) // dealing only with left button
 	{
-		// Minimum y coordinate check
-		if (y >= 600)
+		if (start)
 		{
-			y = 600;
+			// Minimum y coordinate check
+			if (y >= 600)
+			{
+				y = 600;
+			}
+
+			if (speedX == 0 && speedY == 0)
+			{
+				// Change in x and y positions
+				float dx = x - ballPosX;
+				float dy = height - (y - ballPosY);
+
+				// Hypotenuse
+				float d = sqrt(dx * dx + dy * dy);
+
+				// Step speed
+				float spdx = 810 / FPS;
+				float spdy = 540 / FPS;
+
+				// Speed at which the ball's coordinates will change with
+				speedX = (dx / d) * spdx;
+				speedY = (dy / d) * spdy;
+			}
 		}
-
-		if (speedX == 0 && speedY == 0)
+		else
 		{
-			// Change in x and y positions
-			float dx = x - ballPosX;
-			float dy = height - (y - ballPosY);
-
-			// Hypotenuse
-			float d = sqrt(dx * dx + dy * dy);
-
-			// Step speed
-			float spdx = 810 / FPS;
-			float spdy = 540 / FPS;
-
-			// Speed at which the ball's coordinates will change with
-			speedX = (dx / d) * spdx;
-			speedY = (dy / d) * spdy;
+			if (x >= (width / 2 - 60) && x <= (width / 2 + 80) && y >= 450 && y <= 510)
+			{
+				start = true;
+			}
 		}
 
 	}
@@ -869,9 +1020,12 @@ void PrintableKeys(unsigned char key, int x, int y)
 * */
 void Timer(int m) 
 {
-	if (sec > 0)
+	if (start)
 	{
-		sec -= 1 / float(FPS);
+		if (sec > 0)
+		{
+			sec -= 1 / float(FPS);
+		}
 	}
 
 	glutPostRedisplay();
@@ -932,7 +1086,7 @@ int main(int argc, char*argv[])
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA); // we will be using color display mode
 	glutInitWindowPosition(50, 50); // set the initial position of our window
 	glutInitWindowSize(width, height); // set the size of our window
-	glutCreateWindow("PF Word Shooter"); // set the title of our game window
+	glutCreateWindow("HASSAN AHMED | 24i-2521"); // set the title of our game window
 	//SetCanvasSize(width, height); // set the number of pixels...
 
 	// Register your functions to the library,

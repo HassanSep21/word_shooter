@@ -342,6 +342,7 @@ long GetRandInRange(const long &rmin, const long &rmax);
 void DrawTriangle(int x1, int y1, int x2, int y2, int x3, int y3, float *color);
 // Draws a rectangle of the specified color
 void DrawRectangle(int sx, int sy, int width, int height, float *color);
+
 void ReadWords(string filename, string * dictionary);
 // Convert a Number to String...
 
