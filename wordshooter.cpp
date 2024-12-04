@@ -315,7 +315,7 @@ void writeToTxt(string word)
 	ofstream outFile("words_made.txt", ios::app);
 	if (outFile.is_open())
 	{
-		outFile << ++wordCount << " " << word << endl;
+		outFile << ++wordCount << ". " << word << endl;
 	}
 	outFile.close();
 }
@@ -552,8 +552,8 @@ bool checkCollision()
 	bool topRight = (9 - tmpY - 1 >= 0) && (tmpX + 1 < 15) && (board[9 - tmpY - 1][tmpX + 1] != -1);
 
 	bool bottom = (9 - tmpY + 1 < 10) && (board[9 - tmpY + 1][tmpX] != -1);
-	bool bottomLeft = (9 - tmpY + 1 >= 0) && (tmpX - 1 >= 0) && (board[9 - tmpY - 1][tmpX - 1] != -1);
-	bool bottomRight = (9 - tmpY + 1 >= 0) && (tmpX + 1 < 15) && (board[9 - tmpY - 1][tmpX + 1] != -1);
+	bool bottomLeft = (9 - tmpY + 1 > 10) && (tmpX - 1 >= 0) && (board[9 - tmpY + 1][tmpX - 1] != -1);
+	bool bottomRight = (9 - tmpY + 1 > 10) && (tmpX + 1 < 15) && (board[9 - tmpY + 1][tmpX + 1] != -1);
 
 	bool left = (tmpX - 1 >= 0) && (board[9 - tmpY][tmpX - 1] != -1);
 	bool right = (tmpX + 1 < 15) && (board[9 - tmpY][tmpX + 1] != -1);
@@ -579,38 +579,6 @@ void displayRows()
 	}
 }
 
-void checkVacancy(int &x, int &y)
-{
-	if (board[9 - y][x] == -1)
-	{
-		return;
-	}
-
-	if (board[9 - y - 1][x - 1] == -1)
-	{
-		x--;
-		y--;
-
-		if (board[9 - y - 1][x - 1] == -1)
-		{
-			x--;
-			y--;
-		}
-		else
-		{
-			x++;
-			y--;
-		}
-
-	}
-	else
-	{
-		x++;
-		y--;
-	}
-}
-
-
 void updateBall()
 {
 	ballPosX += speedX;
@@ -625,9 +593,21 @@ void updateBall()
 	{
 		Pixels2Cell(ballPosX, ballPosY, ballPosX, ballPosY);
 
-		checkVacancy(ballPosX, ballPosY);
-
-		board[9 - ballPosY][ballPosX] = shooterBall;
+		if (board[9 - ballPosY][ballPosX] == -1)
+		{
+			board[9 - ballPosY][ballPosX] = shooterBall;
+		}
+		else
+		{
+			if (speedX > 0)
+			{
+				board[9 - ballPosY + 1][ballPosX - 1] = shooterBall;
+			}
+			else
+			{
+				board[9 - ballPosY + 1][ballPosX + 1] = shooterBall;
+			}
+		}
 
 		if (ballPosX >= 6 && ballPosX <= 9 && 9 - ballPosY == 8)
 		{
@@ -920,7 +900,6 @@ void NonPrintableKeys(int key, int x, int y)
 
 void MouseMoved(int x, int y) 
 {
-	// cout << x << " " << y << endl;
 	//If mouse pressed then check than swap the balls and if after swaping balls dont brust then reswap the balls
 	/** CACULATION OF AIMERS COORDINATES **/
 	float d = sqrt((pow((x - 490), 2) + pow((620 - y), 2)));
@@ -938,6 +917,8 @@ void MouseMoved(int x, int y)
 	{
 		finalX[i] = ((x - 490) / ratios[i] + 490);
 		finalY[i] = ((620 - y) / ratios[i]);
+
+		
 	}
 }
 
