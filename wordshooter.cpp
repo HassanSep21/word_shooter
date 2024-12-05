@@ -27,6 +27,7 @@ using namespace std;
 // int FPS = 60;
 
 Mix_Music* bgMusic = nullptr;
+Mix_Chunk* popSound = nullptr;
 
 string * dictionary;
 int dictionarysize = 369646;
@@ -78,51 +79,62 @@ int checks = 0;
 int wordCount = 0;
 bool match = false;
 
-float finalX[10];
-float finalY[10];
+float finalX[20];
+float finalY[20];
 
 bool start = false;
+
+bool flash = true;
 
 /* FOR BACKGROUNG MUSIC */
 void initAudio() 
 {
-    // Initialize SDL audio subsystem
     if (SDL_Init(SDL_INIT_AUDIO) < 0) 
-	{
+    {
         printf("SDL could not initialize! SDL Error: %s\n", SDL_GetError());
         return;
     }
-
-    // Initialize SDL_mixer
     if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0) 
-	{
+    {
         printf("SDL_mixer could not initialize! SDL_mixer Error: %s\n", Mix_GetError());
         return;
     }
 
-    // Load music
     bgMusic = Mix_LoadMUS("music.mp3");
     if (!bgMusic) 
-	{
+    {
         printf("Failed to load music! SDL_mixer Error: %s\n", Mix_GetError());
         return;
     }
-
-    // Play music on loop
+    
+    popSound = Mix_LoadWAV("pop.wav");
+    if (!popSound) 
+    {
+        printf("Failed to load pop sound! SDL_mixer Error: %s\n", Mix_GetError());
+        return;
+    }
+    
     Mix_PlayMusic(bgMusic, -1);
 }
 
-void cleanupAudio() {
-    // Free the music
+void cleanupAudio() 
+{
     Mix_FreeMusic(bgMusic);
     
-    // Close SDL_mixer
+    Mix_FreeChunk(popSound);
+    
     Mix_CloseAudio();
     
-    // Quit SDL subsystems
     SDL_Quit();
 }
-/* FOR BACKGROUNG MUSIC */
+
+void playPopSound() 
+{
+    if (popSound) {
+        Mix_PlayChannel(-1, popSound, 0);
+    }
+}
+/* FOR BACKGROUNG MUSIC AND AUDIO */
 
 //USED THIS CODE FOR WRITING THE IMAGES TO .bin FILE
 void RegisterTextures_Write()
@@ -344,6 +356,7 @@ void horzWordCheck(int start, int i)
 				{
 					cout << "found: " << str << endl;
 					writeToTxt(str);
+					playPopSound();
 
 					score += str.length();
 
@@ -380,6 +393,7 @@ void horzWordCheck(int start, int i)
 				{
 					cout << "found: " << str << endl;
 					writeToTxt(str);
+					playPopSound();
 
 					score += str.length();
 
@@ -417,6 +431,7 @@ void vertWordCheck(int end, int j)
 				{
 					cout << "found: " << str << endl;
 					writeToTxt(str);
+					playPopSound();
 
 					score += str.length();
 
@@ -466,6 +481,7 @@ void rightDiagWordCheck(int startX, int startY)
 				{
 					cout << "found: " << str << endl;
 					writeToTxt(str);
+					playPopSound();
 
 					score += str.length();
 
@@ -521,6 +537,7 @@ void leftDiagWordCheck(int startX, int startY)
 				{
 					cout << "found: " << str << endl;
 					writeToTxt(str);
+					playPopSound();
 
 					score += str.length();
 
@@ -677,6 +694,14 @@ void checkRows(int i, int startX)
     }
 }
 
+void aimer()
+{
+	for (int i = 19; i >= 0; i--)
+	{
+		DrawString(finalX[i], finalY[i], width, height, "x", colors[DARK_RED]);
+	}
+}
+
 /*
 * Main Canvas drawing function.
 * */
@@ -786,10 +811,7 @@ void DisplayFunction()
 			DrawAlphabet((alphabets)newShooterBall, 800, 10, awidth, aheight);
 
 			/* Aimer */
-			for (int i = 9; i >= 0; i--)
-			{
-				DrawString(finalX[i], finalY[i], width, height, "o", colors[BLUE]);
-			}
+			aimer();
 
 			/* TEXTS TO BE DISPLAYED */
 			DrawString(40, height - 20, width, height + 5, "Score: " + Num2Str(score), colors[BLUE_VIOLET]);
@@ -820,10 +842,10 @@ void DisplayFunction()
 	else
 	{
 		// WORD
-		DrawAlphabet((alphabets)22, width / 2 - 120, height / 2 + 150, awidth, aheight);
-		DrawAlphabet((alphabets)14, width / 2 - 60, height / 2 + 150, awidth, aheight);
-		DrawAlphabet((alphabets)17, width / 2, height / 2 + 150, awidth, aheight);
-		DrawAlphabet((alphabets)3, width / 2 + 60, height / 2 + 150, awidth, aheight);
+		DrawAlphabet((alphabets)22, width / 2 - 125, height / 2 + 140, awidth, aheight);
+		DrawAlphabet((alphabets)14, width / 2 - 65, height / 2 + 140, awidth, aheight);
+		DrawAlphabet((alphabets)17, width / 2 - 5, height / 2 + 140, awidth, aheight);
+		DrawAlphabet((alphabets)3, width / 2 + 55, height / 2 + 140, awidth, aheight);
 
 		// SHOOTER
 		DrawAlphabet((alphabets)18, width / 2 - 220, height / 2 + 70, awidth, aheight);
@@ -835,6 +857,27 @@ void DisplayFunction()
 		DrawAlphabet((alphabets)17, width / 2 + 140, height / 2 + 70, awidth, aheight);
 
 		// START
+		if (flash)
+		{
+			DrawAlphabet((alphabets)14, width / 2 - 240, height / 2 - 200, 20, 20);
+			DrawAlphabet((alphabets)14, width / 2 - 220, height / 2 - 180, 20, 20);
+			DrawAlphabet((alphabets)14, width / 2 - 200, height / 2 - 160, 20, 20);
+			DrawAlphabet((alphabets)14, width / 2 - 220, height / 2 - 140, 20, 20);
+			DrawAlphabet((alphabets)14, width / 2 - 240, height / 2 - 120, 20, 20);
+
+			DrawAlphabet((alphabets)14, width / 2 + 200, height / 2 - 200, 20, 20);
+			DrawAlphabet((alphabets)14, width / 2 + 180, height / 2 - 180, 20, 20);
+			DrawAlphabet((alphabets)14, width / 2 + 160, height / 2 - 160, 20, 20);
+			DrawAlphabet((alphabets)14, width / 2 + 180, height / 2 - 140, 20, 20);
+			DrawAlphabet((alphabets)14, width / 2 + 200, height / 2 - 120, 20, 20);
+
+			flash = false;
+		}
+		else
+		{
+			flash = true;
+		}
+
 		DrawAlphabet((alphabets)18, width / 2 - 160, height / 2 - 180, awidth, aheight);
 		DrawAlphabet((alphabets)19, width / 2 - 100, height / 2 - 180, awidth, aheight);
 		DrawAlphabet((alphabets)0, width / 2 - 40, height / 2 - 180, awidth, aheight);
@@ -900,26 +943,39 @@ void NonPrintableKeys(int key, int x, int y)
 
 void MouseMoved(int x, int y) 
 {
-	//If mouse pressed then check than swap the balls and if after swaping balls dont brust then reswap the balls
-	/** CACULATION OF AIMERS COORDINATES **/
-	float d = sqrt((pow((x - 490), 2) + pow((620 - y), 2)));
+	int aimX = 490;
+	int aimY = 620;
 
-	float ratios[10];
+	float d = sqrt((pow((x - aimX), 2) + pow((aimY - y), 2)));
+
+	float ratios[20];
 	float tmp = 100.0;
 
-	for (int i = 0; i < 10; i++)
+	for (int i = 0; i < 20; i++)
 	{
 		ratios[i] = d / tmp;
 		tmp += 60;
 	}
 
-	for (int i = 0; i < 10; i++)
-	{
-		finalX[i] = ((x - 490) / ratios[i] + 490);
-		finalY[i] = ((620 - y) / ratios[i]);
-
-		
-	}
+	for (int i = 0; i < 20; i++)
+    {
+        float dx = ((x - aimX) / ratios[i] + aimX);
+        float dy = ((aimY - y) / ratios[i] + 10);
+        
+        if (dx <= 10)
+        {
+            // Reflect from left wall
+            dx = 10 + (10 - dx);
+        }
+        else if (dx >= 920)
+        {
+            // Reflect from right wall
+            dx = 920 - (dx - 920);
+        }
+        
+        finalX[i] = dx;
+        finalY[i] = dy;
+    }
 }
 
 /*This function is called (automatically) whenever your mouse button is clicked witin inside the game window
@@ -1062,6 +1118,7 @@ int main(int argc, char*argv[])
 	newShooterBall = GetAlphabet();
 
 	initAudio(); // Initialize audio for bg music
+	// Mix_VolumeMusic(50);
 
 	glutInit(&argc, argv); // initialize the graphics library...
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA); // we will be using color display mode
