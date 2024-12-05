@@ -322,6 +322,8 @@ void DrawShooter(int sx, int sy, int cwidth = 60, int cheight = 60)
 }
 
 // MY FUNCTIONS
+
+// WRITES WORD TO TEXT
 void writeToTxt(string word)
 {
 	ofstream outFile("words_made.txt", ios::app);
@@ -332,6 +334,8 @@ void writeToTxt(string word)
 	outFile.close();
 }
 
+
+// CHECKS WORDS HORIZONTALLY LEFT TO RIGHT
 void horzWordCheck(int start, int i)
 {
 	for (int k = 14; k < start - 1; k--)
@@ -407,6 +411,7 @@ void horzWordCheck(int start, int i)
 	}
 }
 
+// CHECKS WORDS VERTICALY TOP TO BOTTOM
 void vertWordCheck(int end, int j)
 {
 	for (int k = 0; k < end - 1; k++)
@@ -445,6 +450,7 @@ void vertWordCheck(int end, int j)
 	}
 }
 
+// CHECKS WORDS IN THE RIGHT DIAGONAL BOTTOM TO TOP, LEFT TO RIGHT
 void rightDiagWordCheck(int startX, int startY)
 {
 	int endX = startX;
@@ -501,6 +507,7 @@ void rightDiagWordCheck(int startX, int startY)
 	}
 }
 
+// CHECKS WORDS IN THE LEFT DIAGONAL TOP TO BOTTOM, LEFT TO RIGHT
 void leftDiagWordCheck(int startX, int startY)
 {
 	int endX = startX;
@@ -557,6 +564,7 @@ void leftDiagWordCheck(int startX, int startY)
 	}
 }
 
+// CHECKS FOR COLLISION TO STOP THE BALL
 bool checkCollision()
 {
 	int tmpX;
@@ -564,21 +572,15 @@ bool checkCollision()
 
 	Pixels2Cell(ballPosX, ballPosY, tmpX, tmpY);
 
-	bool top = (9 - tmpY - 1 >= 0) && (board[9 - tmpY - 1][tmpX] != -1);
-	bool topLeft = (9 - tmpY - 1 >= 0) && (tmpX - 1 >= 0) && (board[9 - tmpY - 1][tmpX - 1] != -1);
-	bool topRight = (9 - tmpY - 1 >= 0) && (tmpX + 1 < 15) && (board[9 - tmpY - 1][tmpX + 1] != -1);
+	bool top = (9 - tmpY - 1 >= 0) && (board[9 - tmpY - 1][tmpX] != -1);     // Check top cell if it is filled of not      
+	bool bottom = (9 - tmpY + 1 < 10) && (board[9 - tmpY + 1][tmpX] != -1);  // Check bottom cell if it is filled of not      
+	bool left = (tmpX - 1 >= 0) && (board[9 - tmpY][tmpX - 1] != -1);        // Check left cell if it is filled of not
+	bool right = (tmpX + 1 < 15) && (board[9 - tmpY][tmpX + 1] != -1);       // Check right cell if it is filled of not 
 
-	bool bottom = (9 - tmpY + 1 < 10) && (board[9 - tmpY + 1][tmpX] != -1);
-	bool bottomLeft = (9 - tmpY + 1 > 10) && (tmpX - 1 >= 0) && (board[9 - tmpY + 1][tmpX - 1] != -1);
-	bool bottomRight = (9 - tmpY + 1 > 10) && (tmpX + 1 < 15) && (board[9 - tmpY + 1][tmpX + 1] != -1);
-
-	bool left = (tmpX - 1 >= 0) && (board[9 - tmpY][tmpX - 1] != -1);
-	bool right = (tmpX + 1 < 15) && (board[9 - tmpY][tmpX + 1] != -1);
-
-	// return top || topLeft || topRight || bottom || bottomLeft || bottomRight || left || right;
 	return top || bottom || left || right;
 }
 
+// DISPLAYS ROWS
 void displayRows()
 {
 	int posX;
@@ -596,11 +598,14 @@ void displayRows()
 	}
 }
 
+// UPDATE SHOOTER BALL'S POSITION
 void updateBall()
 {
+	// Change in position
 	ballPosX += speedX;
 	ballPosY += speedY;
 
+	// Reverse the change in x-axis i.e Bounce
 	if (ballPosX <= 10 || ballPosX >= width - 61)
 	{
 		speedX = -speedX;
@@ -610,19 +615,33 @@ void updateBall()
 	{
 		Pixels2Cell(ballPosX, ballPosY, ballPosX, ballPosY);
 
-		if (board[9 - ballPosY][ballPosX] == -1)
+		if (board[9 - ballPosY][ballPosX] == -1) // If valide index
 		{
 			board[9 - ballPosY][ballPosX] = shooterBall;
 		}
 		else
 		{
-			if (speedX > 0)
+			if (speedX > 0) // If slope is positive then ball is at the left side of the uproched ball
 			{
-				board[9 - ballPosY + 1][ballPosX - 1] = shooterBall;
+				if (board[9 - ballPosY][ballPosX - 1] == -1)
+				{
+					board[9 - ballPosY][ballPosX - 1] = shooterBall;
+				}
+				else
+				{
+					board[9 - ballPosY + 1][ballPosX] = shooterBall;
+				}
 			}
-			else
+			else // Else slope is negitive then ball is at the right side of the uproched ball
 			{
-				board[9 - ballPosY + 1][ballPosX + 1] = shooterBall;
+				if (board[9 - ballPosY][ballPosX + 1] == -1)
+				{
+					board[9 - ballPosY][ballPosX + 1] = shooterBall;
+				}
+				else
+				{
+					board[9 - ballPosY - 1][ballPosX] = shooterBall;
+				}
 			}
 		}
 
@@ -635,8 +654,10 @@ void updateBall()
 	}
 }
 
+// RESET SHOOTER BALL'S POSITION
 void resetball()
 {
+	// Reset all the variables for the shooter ball's movements
 	speedX = 0;
 	speedY = 0;
 
@@ -647,12 +668,13 @@ void resetball()
 	newShooterBall = GetAlphabet();
 }
 
+// INITIAL TWO ROWS CHECK
 void checkRows(int i, int startX)
 {
     string longestWord = "";
     int endIndex = -1;
 
-    for (int endx = 14; endx > startX + 1; endx--)
+    for (int endx = 14; endx > startX + 1; endx--) // Make word from start till end
     {
         string str = "";
         for (int j = startX; j <= endx; j++)
@@ -664,7 +686,7 @@ void checkRows(int i, int startX)
         {
             if (str == dictionary[word])
             {
-                if (str.length() > longestWord.length())
+                if (str.length() > longestWord.length()) // Store the largest word and it's index
                 {
                     longestWord = str;
                     endIndex = endx;
@@ -673,7 +695,7 @@ void checkRows(int i, int startX)
         }
     }
 
-    if (longestWord != "")
+    if (longestWord != "") // If Found a word
     {
         if (checks == 4)
         {
@@ -694,6 +716,7 @@ void checkRows(int i, int startX)
     }
 }
 
+// AIMER
 void aimer()
 {
 	for (int i = 19; i >= 0; i--)
@@ -719,8 +742,7 @@ void DisplayFunction()
 
 	if (start)
 	{
-
-		if (initialCheck)
+		if (initialCheck) // Initial check of the first two rows
 		{	
 			bool popped = false;
 			
@@ -778,7 +800,7 @@ void DisplayFunction()
 				popped = true;
 			}
 		}
-		else if (sec > 0)
+		else if (sec > 0) // Run till the time is left
 		{
 			/*Display Rows*/
 			displayRows();
@@ -943,11 +965,14 @@ void NonPrintableKeys(int key, int x, int y)
 
 void MouseMoved(int x, int y) 
 {
+	// Start positions
 	int aimX = 490;
 	int aimY = 620;
 
+	// Distance
 	float d = sqrt((pow((x - aimX), 2) + pow((aimY - y), 2)));
 
+	// Rations with some padding "tmp"
 	float ratios[20];
 	float tmp = 100.0;
 
@@ -957,6 +982,7 @@ void MouseMoved(int x, int y)
 		tmp += 60;
 	}
 
+	// Final value for the aimer
 	for (int i = 0; i < 20; i++)
     {
         float dx = ((x - aimX) / ratios[i] + aimX);
@@ -1000,7 +1026,7 @@ void MouseClicked(int button, int state, int x, int y)
 				y = 600;
 			}
 
-			if (speedX == 0 && speedY == 0)
+			if (speedX == 0 && speedY == 0) // Calculate movement when ball is at initial point
 			{
 				// Change in x and y positions
 				float dx = x - ballPosX;
@@ -1057,6 +1083,7 @@ void PrintableKeys(unsigned char key, int x, int y)
 * */
 void Timer(int m) 
 {
+	// Reduce 1 / FPS amount of time per call
 	if (start)
 	{
 		if (sec > 0)
