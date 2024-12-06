@@ -34,7 +34,7 @@
 ### Steps
 1. Clone the repository:
    
-bash
+```bash
    sudo apt-get install freeglut3-dev glew-utils libglew1.6-dev libfreeimage-dev
    # Alternative (if above doesn't work):
    sudo apt-get install freeglut3-dev glew-utils libglew-dev libfreeimage-dev
@@ -43,6 +43,7 @@ bash
    make clean
    make
    ./word-shooter
+```
 
 ## How to Play
 1. At the start of the game:
