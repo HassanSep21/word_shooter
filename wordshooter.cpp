@@ -1,68 +1,60 @@
-//============================================================================
-// Name        : cookie-crush.cpp
-// Author      : Sibt ul Hussain
-// Version     :
-// Copyright   : (c) Reserved
-// Description : Basic 2D game of Cookie  Crush...
-//============================================================================
 #ifndef WORD_SHOOTER_CPP
 #define WORD_SHOOTER_CPP
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_mixer.h>
-
-//#include <GL/gl.h>
-//#include <GL/glut.h>
 #include <iostream>
-#include<string>
-#include<cmath>
 #include<fstream>
 #include "util.h"
 using namespace std;
-#define MAX(A,B) ((A) > (B) ? (A):(B)) // defining single line functions....
-#define MIN(A,B) ((A) < (B) ? (A):(B))
-#define ABS(A) ((A) < (0) ? -(A):(A))
-#define FPS 60
 
-// int FPS = 60;
+#define FPS 60
 
 Mix_Music* bgMusic = nullptr;
 Mix_Chunk* popSound = nullptr;
 
 string * dictionary;
 int dictionarysize = 369646;
-#define KEY_ESC 27 // A
+#define KEY_ESC 27
 
-// 20,30,30
-const int bradius = 30; // ball radius in pixels...
+int width = 930;
+int height = 660;
 
-int width = 930, height = 660;
-int byoffset = bradius;
-
-int nxcells = (width - bradius) / (2 * bradius);
-int nycells = (height - byoffset /*- bradius*/) / (2 * bradius);
-int nfrows = 2; // initially number of full rows //
+int nfrows = 2; // initially number of full rows
 float score = 0;
 
-int **board = new int *[10]; // 2D-arrays for holding the data...
+int **board = new int *[10]; // 2D-arrays for holding the balls
 
 int bwidth = 130;
 int bheight = 10;
-int bsx, bsy;
 const int nalphabets = 26;
 enum alphabets {
-	AL_A, AL_B, AL_C, AL_D, AL_E, AL_F, AL_G, AL_H, AL_I, AL_J, AL_K, AL_L, AL_M, AL_N, AL_O, AL_P, AL_Q, AL_R, AL_S, AL_T, AL_U, AL_W, AL_X, AL_y, AL_Z
+	AL_A, AL_B, AL_C, AL_D, AL_E, 
+	AL_F, AL_G, AL_H, AL_I, AL_J, 
+	AL_K, AL_L, AL_M, AL_N, AL_O, 
+	AL_P, AL_Q, AL_R, AL_S, AL_T, 
+	AL_U, AL_V, AL_W, AL_X, AL_y, 
+	AL_Z
 };
+
 GLuint texture[nalphabets];
 GLuint tid[nalphabets];
-string tnames[] = { "a.bmp", "b.bmp", "c.bmp", "d.bmp", "e.bmp", "f.bmp", "g.bmp", "h.bmp", "i.bmp", "j.bmp",
-"k.bmp", "l.bmp", "m.bmp", "n.bmp", "o.bmp", "p.bmp", "q.bmp", "r.bmp", "s.bmp", "t.bmp", "u.bmp", "v.bmp", "w.bmp",
-"x.bmp", "y.bmp", "z.bmp" };
+string tnames[] = { 
+	"a.bmp", "b.bmp", "c.bmp", "d.bmp", "e.bmp", 
+	"f.bmp", "g.bmp", "h.bmp", "i.bmp", "j.bmp",
+	"k.bmp", "l.bmp", "m.bmp", "n.bmp", "o.bmp", 
+	"p.bmp", "q.bmp", "r.bmp", "s.bmp", "t.bmp", 
+	"u.bmp", "v.bmp", "w.bmp", "x.bmp", "y.bmp", 
+	"z.bmp" 
+};
+
 GLuint mtid[nalphabets];
-int awidth = 60, aheight = 60; // 60x60 pixels cookies...
 
+// 60x60 pixels Balls
+int awidth = 60;
+int aheight = 60;
 
-// MY VARIABLES
+// GAME VARIABLES
 float sec = 150;
 
 int shooterBall;
@@ -83,8 +75,9 @@ float finalX[20];
 float finalY[20];
 
 bool start = false;
-
 bool flash = true;
+
+string wordMade = "";
 
 /* FOR BACKGROUNG MUSIC */
 void initAudio() 
@@ -136,10 +129,8 @@ void playPopSound()
 }
 /* FOR BACKGROUNG MUSIC AND AUDIO */
 
-//USED THIS CODE FOR WRITING THE IMAGES TO .bin FILE
+// Function is used to load the textures from the files and display
 void RegisterTextures_Write()
-//Function is used to load the textures from the
-// files and display
 {
 	// allocate a texture name
 	glGenTextures(nalphabets, tid);
@@ -186,9 +177,9 @@ void RegisterTextures_Write()
 	ofile.close();
 
 }
+
+// Function is used to load the textures from the files and display
 void RegisterTextures()
-/*Function is used to load the textures from the
-* files and display*/
 {
 	// allocate a texture name
 	glGenTextures(nalphabets, tid);
@@ -198,19 +189,13 @@ void RegisterTextures()
 
 	if (!ifile) {
 		cout << " Couldn't Read the Image Data file ";
-		//exit(-1);
 	}
 	// now load each cookies data...
 	int length;
 	ifile.read((char*)&length, sizeof(int));
 	data.resize(length, 0);
-	for (int i = 0; i < nalphabets; ++i) {
-		// Read current cookie
-		//ReadImage(tnames[i], data);
-		/*if (i == 0) {
-		int length = data.size();
-		ofile.write((char*) &length, sizeof(int));
-		}*/
+	for (int i = 0; i < nalphabets; ++i) 
+	{
 		ifile.read((char*)&data[0], sizeof(char)* length);
 
 		mtid[i] = tid[i];
@@ -240,14 +225,16 @@ void RegisterTextures()
 	}
 	ifile.close();
 }
+
+/*
+	Draws a specfic cookie at given position coordinate
+	sx = position of x-axis from left-bottom
+	sy = position of y-axis from left-bottom
+	cwidth= width of displayed cookie in pixels
+	cheight= height of displayed cookiei pixels.
+*/
 void DrawAlphabet(const alphabets &cname, int sx, int sy, int cwidth = 60, int cheight = 60)
 {
-	/*Draws a specfic cookie at given position coordinate
-	* sx = position of x-axis from left-bottom
-	* sy = position of y-axis from left-bottom
-	* cwidth= width of displayed cookie in pixels
-	* cheight= height of displayed cookiei pixels.
-	* */
 	float fwidth = (float)cwidth / width * 2, fheight = (float)cheight
 		/ height * 2;
 	float fx = (float)sx / width * 2 - 1, fy = (float)sy / height * 2 - 1;
@@ -268,13 +255,10 @@ void DrawAlphabet(const alphabets &cname, int sx, int sy, int cwidth = 60, int c
 
 	glColor4f(1, 1, 1, 1);
 
-	//	glBindTexture(GL_TEXTURE_2D, 0);
-
 	glDisable(GL_TEXTURE_2D);
 	glPopMatrix();
-
-	// glutSwapBuffers();
 }
+
 int GetAlphabet() 
 {
 	return GetRandInRange(0, 26);
@@ -285,12 +269,13 @@ void Pixels2Cell(int px, int py, int & cx, int &cy)
 	cx = round((px + 10) / 60);
 	cy = round((py + 10) / 60);
 }
+
 void Cell2Pixels(int cx, int cy, int & px, int &py)
 {
-	// converts the cell coordinates to pixel coordinates...
 	px = cx * 60 + 10;
 	py = cy * 60 + 10;
 }
+
 void DrawShooter(int sx, int sy, int cwidth = 60, int cheight = 60)
 {
 	float fwidth = (float)cwidth / width * 2, fheight = (float)cheight
@@ -313,15 +298,9 @@ void DrawShooter(int sx, int sy, int cwidth = 60, int cheight = 60)
 
 	glColor4f(1, 1, 1, 1);
 
-	//	glBindTexture(GL_TEXTURE_2D, 0);
-
 	glDisable(GL_TEXTURE_2D);
 	glPopMatrix();
-
-	//glutSwapBuffers();
 }
-
-// MY FUNCTIONS
 
 // WRITES WORD TO TEXT
 void writeToTxt(string word)
@@ -333,7 +312,6 @@ void writeToTxt(string word)
 	}
 	outFile.close();
 }
-
 
 // CHECKS WORDS HORIZONTALLY LEFT TO RIGHT
 void horzWordCheck(int start, int i)
@@ -361,6 +339,7 @@ void horzWordCheck(int start, int i)
 					cout << "found: " << str << endl;
 					writeToTxt(str);
 					playPopSound();
+					wordMade = str;
 
 					score += str.length();
 
@@ -398,6 +377,7 @@ void horzWordCheck(int start, int i)
 					cout << "found: " << str << endl;
 					writeToTxt(str);
 					playPopSound();
+					wordMade = str;
 
 					score += str.length();
 
@@ -437,6 +417,7 @@ void vertWordCheck(int end, int j)
 					cout << "found: " << str << endl;
 					writeToTxt(str);
 					playPopSound();
+					wordMade = str;
 
 					score += str.length();
 
@@ -488,6 +469,7 @@ void rightDiagWordCheck(int startX, int startY)
 					cout << "found: " << str << endl;
 					writeToTxt(str);
 					playPopSound();
+					wordMade = str;
 
 					score += str.length();
 
@@ -545,6 +527,8 @@ void leftDiagWordCheck(int startX, int startY)
 					cout << "found: " << str << endl;
 					writeToTxt(str);
 					playPopSound();
+
+					wordMade = str;
 
 					score += str.length();
 
@@ -725,20 +709,11 @@ void aimer()
 	}
 }
 
-/*
-* Main Canvas drawing function.
-* */
+// MAIN CANVAS DRAWING FUNCTION
 void DisplayFunction() 
 {
-	// set the background color using function glClearColor.
-	// to change the background play with the red, green and blue values below.
-	// Note that r, g and b values must be in the range [0,1] where 0 means dim red and 1 means pure red and so on.
-	//#if 0
-	glClearColor(1/*Red Component*/, 1/*Green Component*/,
-		1/*Blue Component*/, 0 /*Alpha component*/); // Red==Green==Blue==1 --> White Colour
+	glClearColor(1, 1, 1, 0);
 	glClear(GL_COLOR_BUFFER_BIT); //Update the colors
-
-	//write your drawing commands here or call your drawing functions...
 
 	if (start)
 	{
@@ -835,9 +810,12 @@ void DisplayFunction()
 			/* Aimer */
 			aimer();
 
-			/* TEXTS TO BE DISPLAYED */
+			/* TEXTS TO BE DISPLAYED */			
+			DrawString(40, 20, width, height + 5, "Word made: ", colors[BLACK]);
+			DrawString(170, 20, width, height + 5, wordMade, colors[PURPLE]);
+
 			DrawString(40, height - 20, width, height + 5, "Score: " + Num2Str(score), colors[BLUE_VIOLET]);
-			DrawString(width / 2 - 130, height - 20, width, height + 5, "Hassan Ahmed [24i-2521]", colors[BLUE_VIOLET]);
+			DrawString(width / 2 - 130, height - 20, width, height + 5, "WORD SHOOTER | CS50 FP", colors[BLUE_VIOLET]);
 			DrawString(width - 200, height - 25, width, height, "Time Left:" + Num2Str(sec) + " sec", colors[RED]);
 			DrawString(790, 90, width, height, "Next ball:", colors[BLACK]);
 		}
@@ -907,62 +885,12 @@ void DisplayFunction()
 		DrawAlphabet((alphabets)19, width / 2 + 80, height / 2 - 180, awidth, aheight);
 	}
 
-	// #----------------- Write your code till here ----------------------------#
-	//DO NOT MODIFY THESE LINES
+	// SHOOTER
 	DrawShooter((width / 2) - 35, 0, bwidth, bheight);
 	glutSwapBuffers();
-	//DO NOT MODIFY THESE LINES..
 }
 
-/* Function sets canvas size (drawing area) in pixels...
-*  that is what dimensions (x and y) your game will have
-*  Note that the bottom-left coordinate has value (0,0) and top-right coordinate has value (width-1,height-1)
-* */
-void SetCanvasSize(int width, int height) 
-{
-	/*glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	glOrtho(0, width, 0, height, -1, 1); // set the screen size to given width and height.*/
-}
-
-/*This function is called (automatically) whenever any non-printable key (such as up-arrow, down-arraw)
-* is pressed from the keyboard
-*
-* You will have to add the necessary code here when the arrow keys are pressed or any other key is pressed...
-*
-* This function has three argument variable key contains the ASCII of the key pressed, while x and y tells the
-* program coordinates of mouse pointer when key was pressed.
-*
-* */
-
-void NonPrintableKeys(int key, int x, int y) 
-{
-	if (key == GLUT_KEY_LEFT /*GLUT_KEY_LEFT is constant and contains ASCII for left arrow key*/) {
-		// what to do when left key is pressed...
-
-	}
-	else if (key == GLUT_KEY_RIGHT /*GLUT_KEY_RIGHT is constant and contains ASCII for right arrow key*/) {
-
-	}
-	else if (key == GLUT_KEY_UP/*GLUT_KEY_UP is constant and contains ASCII for up arrow key*/) {
-	}
-	else if (key == GLUT_KEY_DOWN/*GLUT_KEY_DOWN is constant and contains ASCII for down arrow key*/) {
-	}
-
-	/* This function calls the Display function to redo the drawing. Whenever you need to redraw just call
-	* this function*/
-	/*
-	glutPostRedisplay();
-	*/
-}
-/*This function is called (automatically) whenever your mouse moves witin inside the game window
-*
-* You will have to add the necessary code here for finding the direction of shooting
-*
-* This function has two arguments: x & y that tells the coordinate of current position of move mouse
-*
-* */
-
+// x & y THAT TELLS THE COORDINATE OF CURRENT POSITION OF MOUSE
 void MouseMoved(int x, int y) 
 {
 	// Start positions
@@ -1004,15 +932,7 @@ void MouseMoved(int x, int y)
     }
 }
 
-/*This function is called (automatically) whenever your mouse button is clicked witin inside the game window
-*
-* You will have to add the necessary code here for shooting, etc.
-*
-* This function has four arguments: button (Left, Middle or Right), state (button is pressed or released),
-* x & y that tells the coordinate of current position of move mouse
-*
-* */
-
+// x & y THAT TELLS THE COORDINATE OFCURRENT POSITION OF MOUSE AT WHATEVER BUTTON CLICK OR STATE
 void MouseClicked(int button, int state, int x, int y) 
 {
 
@@ -1062,25 +982,16 @@ void MouseClicked(int button, int state, int x, int y)
 	}
 	glutPostRedisplay();
 }
-/*This function is called (automatically) whenever any printable key (such as x,b, enter, etc.)
-* is pressed from the keyboard
-* This function has three argument variable key contains the ASCII of the key pressed, while x and y tells the
-* program coordinates of mouse pointer when key was pressed.
-* */
+
 void PrintableKeys(unsigned char key, int x, int y) 
 {
-	if (key == KEY_ESC/* Escape key ASCII*/) {
-		exit(1); // exit the program when escape key is pressed.
+	if (key == KEY_ESC) 
+	{
+		exit(1);
 	}
 }
 
-/*
-* This function is called after every 1000.0/FPS milliseconds
-* (FPS is defined on in the beginning).
-* You can use this function to animate objects and control the
-* speed of different moving objects by varying the constant FPS.
-*
-* */
+// THIS FUNCITON IS CALLED ATFTER EVERY 1000.0/FPS MILLISECONDS
 void Timer(int m) 
 {
 	// Reduce 1 / FPS amount of time per call
@@ -1096,16 +1007,13 @@ void Timer(int m)
 	glutTimerFunc(1000.0/FPS, Timer, 0);
 }
 
-/*
-* our gateway main function
-* */
 int main(int argc, char*argv[]) 
 {
-	InitRandomizer(); // seed the random number generator...
+	InitRandomizer(); 
 
 	//Dictionary for matching the words. It contains the 369646 words.
 	dictionary = new string[dictionarysize]; 
-	ReadWords("words_alpha.txt", dictionary); // dictionary is an array of strings
+	ReadWords("words_alpha.txt", dictionary);
 
 	// Open file to store popped words
 	ofstream outFile("words_made.txt");
@@ -1115,8 +1023,6 @@ int main(int argc, char*argv[])
 				<< "-----------" << endl;
 	}
 	outFile.close();
-
-	//Write your code here for filling the canvas with different Alphabets. You can use the Getalphabet function for getting the random alphabets
 
 	// Allocate Memory for board
 	for (int i = 0; i < 10; i++)
@@ -1145,29 +1051,21 @@ int main(int argc, char*argv[])
 	newShooterBall = GetAlphabet();
 
 	initAudio(); // Initialize audio for bg music
-	// Mix_VolumeMusic(50);
+	Mix_VolumeMusic(20);
 
-	glutInit(&argc, argv); // initialize the graphics library...
-	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA); // we will be using color display mode
-	glutInitWindowPosition(50, 50); // set the initial position of our window
-	glutInitWindowSize(width, height); // set the size of our window
-	glutCreateWindow("HASSAN AHMED | 24i-2521"); // set the title of our game window
-	//SetCanvasSize(width, height); // set the number of pixels...
+	glutInit(&argc, argv); 						  // initialize the graphics library
+	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA); // using color display mode
+	glutInitWindowPosition(50, 50); 			  // set the initial position of window
+	glutInitWindowSize(width, height); 			  // set the size of window
+	glutCreateWindow("HASSAN AHMED | CS50x FP");  // set the title of game window
 
-	// Register your functions to the library,
-	// you are telling the library names of function to call for different tasks.
 	RegisterTextures();
 	glutDisplayFunc(DisplayFunction); // tell library which function to call for drawing Canvas.
-	glutSpecialFunc(NonPrintableKeys); // tell library which function to call for non-printable ASCII characters
-	glutKeyboardFunc(PrintableKeys); // tell library which function to call for printable ASCII characters
+	glutKeyboardFunc(PrintableKeys);  // tell library which function to call for printable ASCII characters
 	glutMouseFunc(MouseClicked);
 	glutPassiveMotionFunc(MouseMoved); // Mouse
 
-	//// This function tells the library to call our Timer function after 1000.0/FPS milliseconds...
 	glutTimerFunc(1000.0/FPS, Timer, 0);
-
-	//// now handle the control to library and it will call our registered functions when
-	//// it deems necessary...
 
 	atexit(cleanupAudio);
 
@@ -1183,4 +1081,4 @@ int main(int argc, char*argv[])
 
 	return 1;
 }
-#endif /* */
+#endif
